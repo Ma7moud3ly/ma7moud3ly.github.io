@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل الثالث: Images في Docker — ما الـ Image، الطبقات (Layers) وآلية التخزين المشترك، السجلات (Registries) و Docker Hub، وأوامر pull و tag و push."
+    />
+    <title>الفصل 3: الـ Images — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="3">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 3: الـ Images</h1>
+            <p>
+              الـ Image هي المكوّن الذي نبنيه وننقله وننشره. في هذا الفصل نفتحها
+              من الداخل: مِمَّ تتكوّن، ولماذا هي مبنيّة من <strong>طبقات</strong>،
+              ومن أين نجلبها وإليها ندفعها.
+            </p>
+            <p>
+              فهم الطبقات سيغيّر طريقة كتابتك للـ Dockerfile لاحقًا، ويجعل الـ
+              Images أصغر وأسرع.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--beginner">مبتدئ</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تصف الـ Image كطبقات (layers) ثابتة مكدّسة.</li>
+              <li>تشرح كيف تُشارَك الطبقات بين الـ Images لتوفير المساحة والوقت.</li>
+              <li>تقرأ اسم الـ Image الكامل: <code>registry/repository:tag</code>.</li>
+              <li>تفرّق بين الـ Registry والـ Repository والـ Tag.</li>
+              <li>تسحب الـ Images وتعيد وسمها وتدفعها إلى Docker Hub.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <ul>
+              <li>إنهاء الفصل 2، مع Docker يعمل (<code>docker run hello-world</code> ينجح).</li>
+              <li>حساب مجاني على <code>hub.docker.com</code> (سنحتاجه في قسم الدفع push).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>ما الـ Image فعليًّا؟</h2>
+            <p>
+              الـ Image قالب ثابت للقراءة فقط. يحتوي كل ما يحتاجه التطبيق ليعمل:
+              نظام ملفات، مكتبات، بيئة تشغيل، وإعدادات. لكنها ليست ملفًّا واحدًا،
+              بل <strong>طبقات (layers)</strong> مكدّسة.
+            </p>
+
+            <h2>الطبقات (Layers)</h2>
+            <p>
+              كل خطوة في بناء الـ Image تضيف <strong>طبقة</strong> جديدة فوق سابقتها.
+              كل طبقة ثابتة (read-only) وتمثّل التغيير الذي أحدثته تلك الخطوة فقط.
+            </p>
+            <p>مثال على تكديس الطبقات لـ Image تطبيق نموذجي:</p>
+            <ul>
+              <li>طبقة أساس: توزيعة Linux صغيرة (base image).</li>
+              <li>طبقة فوقها: بيئة التشغيل (runtime) والمكتبات.</li>
+              <li>طبقة عليا: ملفات تطبيقك.</li>
+            </ul>
+            <p>
+              عند تشغيل حاوية من الـ Image، يضيف Docker <strong>طبقة كتابة رقيقة</strong>
+              (writable layer) فوق طبقات الـ Image الثابتة. كل تغيير يحدث أثناء عمل
+              الحاوية يُكتب هنا فقط، دون المساس بالـ Image.
+            </p>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> لماذا الطبقات مهمّة؟</p>
+              <p>
+                الطبقات <strong>تُخزَّن مرة واحدة وتُشارَك</strong> بين كل الـ
+                Images والحاويات. إذا اشتركت عشر Images في نفس طبقة الأساس، فهي على
+                القرص <strong>مرة واحدة</strong>. ولهذا يكون <code>pull</code>
+                والبناء أسرع: تُنزَّل الطبقات الجديدة فقط.
+              </p>
+            </div>
+
+            <h2>اسم الـ Image: Registry و Repository و Tag</h2>
+            <p>اسم الـ Image الكامل يتكوّن من ثلاثة أجزاء:</p>
+            <figure class="code-block" data-lang="bash" data-title="بنية اسم الـ Image">
+              <pre><code class="language-bash">docker.io / library/nginx : 1.27
+#  registry     repository    tag
+
+# The default parts are usually omitted:
+nginx            # = docker.io/library/nginx:latest</code></pre>
+            </figure>
+            <ul>
+              <li><strong>Registry</strong>: مكان تخزين الـ Images (الافتراضي <code>docker.io</code> أي Docker Hub).</li>
+              <li><strong>Repository</strong>: اسم الـ Image نفسها (الـ Images الرسمية تحت <code>library/</code>).</li>
+              <li><strong>Tag</strong>: إصدار محدّد (الافتراضي <code>latest</code>).</li>
+            </ul>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> احذر الوسم <code>latest</code></p>
+              <p>
+                <code>latest</code> ليس «الأحدث دائمًا»، بل مجرّد وسم افتراضي قد
+                يشير إلى أي إصدار. اعتمد على وسم صريح مثل <code>nginx:1.27</code>
+                لتضمن نتائج قابلة للتكرار (reproducible).
+              </p>
+            </div>
+
+            <h3>الـ Digest: مرجع ثابت لا يتغيّر</h3>
+            <p>
+              الوسم قد يُعاد توجيهه إلى محتوى مختلف لاحقًا. أما الـ <strong>digest</strong>
+              (بصمة <code>sha256</code>) فيشير إلى محتوى محدّد لا يتغيّر أبدًا —
+              مفيد عندما تريد تثبيتًا صارمًا:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker pull nginx@sha256:1a2b3c...   # exactly the same content every time</code></pre>
+            </figure>
+
+            <h2>السجلات (Registries) و Docker Hub</h2>
+            <p>
+              الـ Registry مخزن للـ Images. أشهرها <strong>Docker Hub</strong> (العام
+              والافتراضي)، وهناك سجلات أخرى مثل GitHub Container Registry
+              (<code>ghcr.io</code>) وسجلات خاصة داخل الشركات.
+            </p>
+            <p>على Docker Hub تجد أنواعًا من الـ Images:</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>النوع</th>
+                    <th>المثال</th>
+                    <th>ملاحظة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>رسمية (Official)</td><td><code>nginx</code>, <code>postgres</code></td><td>تصونها Docker، موثوقة</td></tr>
+                  <tr><td>موثّقة (Verified Publisher)</td><td><code>eclipse-temurin</code></td><td>من جهات معروفة</td></tr>
+                  <tr><td>مجتمعية</td><td><code>username/app</code></td><td>من أي مستخدم — تحقّق منها</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> شرائح شفّافة مكدّسة</p>
+              <p>
+                تخيّل الطبقات كشرائح بلاستيكية شفّافة مرسوم على كلٍّ منها جزء من
+                الـ Image. عندما تكدّسها تحصل على الـ Image الكاملة. لتغيير طبقة عليا لا
+                تحتاج إعادة رسم الطبقات السفلى — تعيد فقط الشريحة التي تغيّرت.
+              </p>
+              <p>
+                وإن عرفت Git، فالطبقات تشبه الـ commits: كل واحدة تسجّل التغيير
+                فوق ما قبله، والـ Registry يشبه GitHub لكن للـ Images.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>الـ Image الثابتة وطبقة الحاوية القابلة للكتابة</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    W["Writable Layer — الحاوية"]:::rw
+    L3["Layer: ملفات التطبيق"]:::ro
+    L2["Layer: بيئة التشغيل والمكتبات"]:::ro
+    L1["Layer: نظام الأساس (base)"]:::ro
+    W --> L3 --> L2 --> L1
+    classDef ro fill:#2496ed22,stroke:#2496ed;
+    classDef rw fill:#6db33f22,stroke:#6db33f,stroke-dasharray:4 3;
+              </pre>
+              <figcaption>
+                طبقات الـ Image ثابتة ومشتركة، وتضيف كل حاوية طبقة كتابة خاصة بها
+                فوقها.
+              </figcaption>
+            </figure>
+
+            <h3>مشاركة الطبقات بين الـ Images</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    BASE["طبقة أساس debian (مخزّنة مرة واحدة)"]
+    BASE --> N["nginx image"]
+    BASE --> P["postgres image"]
+              </pre>
+              <figcaption>
+                يتشارك الـ Image الخاصان بـ nginx و postgres طبقة الأساس نفسها،
+                فتُخزَّن على القرص مرة واحدة فقط.
+              </figcaption>
+            </figure>
+
+            <h3>سحب ودفع الـ Images</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    L["جهازك المحلي"] -->|"docker push"| R["Registry — Docker Hub"]
+    R -->|"docker pull"| L
+              </pre>
+              <figcaption>تسحب الـ Images من السجل، وتدفع الـ Images الخاصة بك إليه لمشاركتها.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: سحب Image وفحص طبقاتها</h2>
+            <p>لنسحب Image ونستعرضها. نبدأ بسحب Image صغيرة:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker pull alpine:3.20</code></pre>
+            </figure>
+            <p>ثم نعرض الـ Images المحلية بأحجامها:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker images</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="المخرجات">
+              <pre><code class="language-bash">REPOSITORY   TAG       IMAGE ID       CREATED       SIZE
+alpine       3.20      1d34ff...      2 weeks ago   8.17MB</code></pre>
+            </figure>
+            <p>
+              لرؤية الطبقات التي تتكوّن منها الـ Image، نستخدم <code>docker history</code>:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker history alpine:3.20</code></pre>
+            </figure>
+            <p>
+              كل سطر في المخرجات يمثّل طبقة والأمر الذي أنشأها. لاحظ أن الطبقات ذات
+              الحجم <code>0B</code> هي بيانات وصفية (metadata) لا تشغل مساحة فعلية.
+            </p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي: إعادة وسم Image ودفعها</h2>
+            <p>
+              سندفع Image إلى حسابك على Docker Hub. (لم نبنِ Image خاصة بعد — البناء
+              في فصل Dockerfile — لذا سنعيد وسم Image موجودة لتوضيح الآلية.)
+            </p>
+            <p><strong>1) سجّل الدخول إلى Docker Hub:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker login</code></pre>
+            </figure>
+            <p>
+              <strong>2) أعد وسم الـ Image باسم يبدأ باسم مستخدمك</strong> (استبدل
+              <code>YOUR_USER</code>):
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker tag alpine:3.20 YOUR_USER/my-alpine:1.0</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> ملاحظة</p>
+              <p>
+                <code>docker tag</code> لا ينسخ الـ Image، بل يضيف اسمًا آخر يشير إلى
+                نفس الطبقات. لدفع Image إلى Docker Hub يجب أن يبدأ اسمها باسم
+                مستخدمك (<code>YOUR_USER/...</code>).
+              </p>
+            </div>
+            <p><strong>3) ادفع الـ Image:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker push YOUR_USER/my-alpine:1.0</code></pre>
+            </figure>
+            <p>
+              الآن يمكن لأي شخص سحبها بـ <code>docker pull YOUR_USER/my-alpine:1.0</code>.
+            </p>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 3: استكشاف base image</p>
+              <p>
+                في الفصول القادمة سنبني Image لتطبيقنا فوق base image تحمل بيئة تشغيل
+                Java. لنتعرّف عليها الآن.
+              </p>
+              <ol>
+                <li>اسحب base image Java: <code>docker pull eclipse-temurin:21-jre</code>.</li>
+                <li>قارن حجمها بحجم <code>alpine</code> عبر <code>docker images</code>. لماذا الفرق؟</li>
+                <li>استعرض طبقاتها بـ <code>docker history eclipse-temurin:21-jre</code>.</li>
+                <li>أعد وسمها باسمك: <code>docker tag eclipse-temurin:21-jre YOUR_USER/java-base:21</code>.</li>
+                <li>(اختياري) ادفعها إلى Docker Hub.</li>
+                <li>احذف الوسم الذي أنشأته بـ <code>docker rmi YOUR_USER/java-base:21</code> ولاحظ أن الـ Image الأصلية تبقى.</li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> base image Java جاهزة محليًّا — هي التي
+                سنبني فوقها في فصل Dockerfile.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> الاعتماد على <code>latest</code></p>
+              <p>
+                قد يتغيّر ما يشير إليه <code>latest</code> بين جهازين أو مع الوقت،
+                فتحصل على نتائج غير متوقّعة. ثبّت وسمًا صريحًا.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> نسيان <code>docker login</code> قبل الدفع</p>
+              <p>
+                محاولة <code>push</code> دون تسجيل دخول أو دون تسمية الـ Image باسم
+                مستخدمك تفشل بخطأ صلاحيات (denied).
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> الخلط بين Repository و Tag</p>
+              <p>
+                <code>nginx</code> مستودع (repository)، و<code>1.27</code> وسم (tag)
+                داخله. المستودع الواحد يحوي عدة وسوم/إصدارات.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>📌 ثبّت وسومًا صريحة</h4>
+                <p>استخدم <code>postgres:16</code> لا <code>postgres:latest</code> لضمان التكرار.</p>
+              </div>
+              <div class="card">
+                <h4>🛡️ فضّل الـ Images الرسمية والموثّقة</h4>
+                <p>أقل مخاطرة أمنية وأفضل صيانة من الـ Images المجتمعية المجهولة.</p>
+              </div>
+              <div class="card">
+                <h4>🪶 ابدأ من أساس صغير</h4>
+                <p>base image أصغر = طبقات أقل، سحب أسرع، ومساحة هجوم أضيق.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة الأوامر (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>الأمر</th>
+                      <th>الوظيفة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>docker pull &lt;image&gt;:&lt;tag&gt;</td><td>سحب Image من السجل</td></tr>
+                    <tr><td>docker images</td><td>عرض الـ Images المحلية وأحجامها</td></tr>
+                    <tr><td>docker history &lt;image&gt;</td><td>عرض طبقات الـ Image</td></tr>
+                    <tr><td>docker image inspect &lt;image&gt;</td><td>تفاصيل الـ Image (JSON)</td></tr>
+                    <tr><td>docker tag &lt;src&gt; &lt;user&gt;/&lt;repo&gt;:&lt;tag&gt;</td><td>إضافة اسم/وسم جديد</td></tr>
+                    <tr><td>docker login</td><td>تسجيل الدخول إلى السجل</td></tr>
+                    <tr><td>docker push &lt;user&gt;/&lt;repo&gt;:&lt;tag&gt;</td><td>دفع Image إلى السجل</td></tr>
+                    <tr><td>docker rmi &lt;image&gt;</td><td>حذف Image/وسم محلي</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li>الـ Image مبنيّة من طبقات ثابتة مكدّسة، والحاوية تضيف فوقها طبقة كتابة.</li>
+                <li>الطبقات تُخزَّن مرة وتُشارَك، فتوفّر المساحة وتسرّع السحب والبناء.</li>
+                <li>اسم الـ Image = <code>registry/repository:tag</code>، والافتراضي Docker Hub و<code>latest</code>.</li>
+                <li>الـ digest مرجع ثابت، بينما الوسم قابل للتغيير.</li>
+              </ul>
+              <h3>أوامر مهمة</h3>
+              <ul>
+                <li><code>docker pull</code> / <code>docker images</code> / <code>docker history</code></li>
+                <li><code>docker tag</code> / <code>docker login</code> / <code>docker push</code></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li>الاعتماد على <code>latest</code>.</li>
+                <li>نسيان تسجيل الدخول أو تسمية الـ Image باسمك قبل الدفع.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
+      defer
+    ></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

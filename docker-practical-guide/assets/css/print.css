@@ -1,0 +1,99 @@
+/* ==========================================================================
+   print.css
+   Clean PDF export: hide chrome, expand content, avoid bad page breaks.
+   ========================================================================== */
+
+@media print {
+  :root {
+    --content-max: 100%;
+  }
+
+  /* Force a readable light rendering regardless of active theme */
+  :root,
+  :root[data-theme="dark"] {
+    --bg: #ffffff;
+    --bg-subtle: #f4f6f8;
+    --bg-elevated: #ffffff;
+    --bg-code: #f6f8fa;
+    --text: #111;
+    --text-muted: #444;
+    --border: #ccc;
+    --border-subtle: #e2e2e2;
+    color-scheme: light;
+  }
+
+  /* Hide interactive chrome */
+  .site-header,
+  .sidebar,
+  .sidebar-overlay,
+  .toc,
+  .menu-toggle,
+  .copy-btn,
+  .chapter-nav,
+  .skip-link,
+  .heading-anchor {
+    display: none !important;
+  }
+
+  .layout {
+    display: block;
+    max-width: 100%;
+  }
+  .content {
+    padding: 0;
+  }
+  .content__inner {
+    max-width: 100%;
+  }
+
+  body {
+    font-size: 11pt;
+    line-height: 1.6;
+    background: #fff;
+    color: #111;
+  }
+
+  a {
+    color: #111 !important;
+    text-decoration: none;
+  }
+
+  /* Avoid breaking these across pages */
+  .code-block,
+  .callout,
+  .interview,
+  .diagram,
+  .card,
+  table,
+  pre,
+  figure {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  pre,
+  code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Each chapter article starts on a fresh page */
+  .chapter {
+    page-break-before: always;
+  }
+  .chapter:first-of-type {
+    page-break-before: avoid;
+  }
+
+  .site-footer {
+    border-top: 1px solid #ccc;
+    background: #fff;
+  }
+}

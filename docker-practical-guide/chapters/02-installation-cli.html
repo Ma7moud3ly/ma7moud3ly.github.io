@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل الثاني: تثبيت Docker وواجهة الأوامر — Docker Desktop و WSL، التحقق بـ docker version و docker info، تشغيل hello-world، وأساسيات الـ CLI."
+    />
+    <title>الفصل 2: التثبيت وواجهة الأوامر — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="2">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 2: التثبيت وواجهة الأوامر</h1>
+            <p>
+              في الفصل السابق فهمنا <em>لماذا</em> Docker. الآن نثبّته ونشغّل أول
+              حاوية. من هنا ستنفّذ الأوامر بنفسك على جهازك.
+            </p>
+            <p>
+              سنرى الفرق بين Docker Desktop و Docker Engine، ودور WSL على Windows،
+              وكيف نتأكّد أن التثبيت نجح، وبنية أوامر الـ CLI.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--beginner">مبتدئ</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تفرّق بين Docker Desktop و Docker Engine ومتى تستخدم كلًّا منهما.</li>
+              <li>تشرح دور WSL 2 في تشغيل Docker على Windows.</li>
+              <li>تثبّت Docker وتتحقّق منه بـ <code>docker version</code> و <code>docker info</code>.</li>
+              <li>تشغّل أول حاوية بـ <code>docker run hello-world</code>.</li>
+              <li>تقرأ بنية أوامر الـ CLI وتستعين بـ <code>--help</code>.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <ul>
+              <li>إنهاء الفصل 1 (المفاهيم الأساسية للحاويات والـ Images).</li>
+              <li>جهاز بنظام Windows 10/11، أو macOS، أو Linux، مع صلاحيات تثبيت البرامج.</li>
+              <li>اتصال بالإنترنت لتنزيل Docker وأول Image.</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>Docker Desktop مقابل Docker Engine</h2>
+            <p>
+              هناك طريقتان لتشغيل Docker، والفرق بينهما مصدر حيرة شائع:
+            </p>
+            <ul>
+              <li>
+                <strong>Docker Engine</strong>: هو Docker نفسه (الـ Daemon
+                والـ CLI). يعمل أصلًا على <strong>Linux</strong>.
+              </li>
+              <li>
+                <strong>Docker Desktop</strong>: تطبيق رسومي لـ Windows و macOS
+                يشغّل Docker Engine <em>داخل جهاز Linux خفيف</em> في الخلفية،
+                ويضيف واجهة ولوحة تحكم وأدوات.
+              </li>
+            </ul>
+            <p>
+              السبب: الحاويات تعتمد على نواة Linux. لذلك على Windows و macOS يحتاج
+              Docker إلى طبقة Linux تعمل تحته — وهنا يأتي دور WSL.
+            </p>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>النظام</th>
+                    <th>الأنسب</th>
+                    <th>كيف يعمل</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Windows 10/11</td><td>Docker Desktop</td><td>عبر WSL 2 (نواة Linux)</td></tr>
+                  <tr><td>macOS</td><td>Docker Desktop</td><td>عبر جهاز افتراضي خفيف</td></tr>
+                  <tr><td>Linux</td><td>Docker Engine</td><td>أصلًا على نواة النظام</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2>دور WSL 2 على Windows</h2>
+            <p>
+              WSL 2 هو نواة Linux حقيقية تعمل داخل Windows. يستخدمها Docker Desktop
+              لتشغيل الحاويات، فتحصل على أداء قريب من Linux دون مغادرة Windows.
+            </p>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> ملاحظة</p>
+              <p>
+                يفعّل مثبّت Docker Desktop الحديث WSL 2 تلقائيًا في الغالب. إن
+                واجهت مشكلة، فعّلها يدويًا بأمر <code>wsl --install</code> في
+                PowerShell كمسؤول ثم أعد التشغيل.
+              </p>
+            </div>
+
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> واجهة الأوامر تعمل أصلًا على Windows</p>
+              <p>
+                نقطة يكثر الالتباس فيها: WSL 2 ضروري للـ <strong>محرّك (Engine)</strong>
+                الذي يشغّل الحاويات، وليس لواجهة الأوامر. تذكّر أن Docker ينقسم إلى
+                جزأين (كما رأينا في <code>docker version</code>):
+              </p>
+              <ul>
+                <li>
+                  <strong>Docker CLI (Client)</strong> — الأمر <code>docker</code>
+                  الذي تكتبه، يعمل <strong>أصلًا على Windows</strong> من PowerShell
+                  أو CMD أو Windows Terminal.
+                </li>
+                <li>
+                  <strong>Docker Engine (Server/Daemon)</strong> — من يبني الـ Images
+                  ويشغّل الحاويات فعليًّا، ويعمل <strong>داخل WSL 2</strong> لأن
+                  الحاويات تحتاج نواة Linux.
+                </li>
+              </ul>
+              <p>
+                فعندما تنفّذ <code>docker run</code> في PowerShell، يعالج
+                <code>docker.exe</code> الأمر محليًّا على Windows ثم يرسله عبر API
+                إلى الـ Daemon داخل WSL 2 الذي يشغّل الحاوية. لا تغادر PowerShell
+                إطلاقًا.
+              </p>
+            </div>
+
+            <h2>خطوات التثبيت</h2>
+            <h3>Windows / macOS</h3>
+            <ol>
+              <li>نزّل Docker Desktop من الموقع الرسمي <code>docker.com</code>.</li>
+              <li>شغّل المثبّت واترك خيار «Use WSL 2 based engine» مفعّلًا (على Windows).</li>
+              <li>أعد تشغيل الجهاز إن طُلب منك، ثم افتح Docker Desktop وانتظر حتى تصبح حالته «Running».</li>
+            </ol>
+
+            <h3>Linux (مثال Ubuntu)</h3>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash"># Install Docker Engine via Docker's official script
+curl -fsSL https://get.docker.com | sh
+
+# Start the service and enable it on boot
+sudo systemctl enable --now docker
+
+# Run docker without sudo (requires logging out and back in)
+sudo usermod -aG docker $USER</code></pre>
+            </figure>
+
+            <h2>بنية أوامر الـ CLI</h2>
+            <p>
+              كل أوامر Docker تتبع نمطًا واحدًا. فهم هذا النمط يعني أنك تستطيع
+              تخمين الأوامر بدل حفظها:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="بنية الأمر">
+              <pre><code class="language-bash">docker  &lt;management-command&gt;  &lt;sub-command&gt;  [options]
+#        command group           action        options
+
+docker container ls
+docker image pull nginx
+docker volume create data</code></pre>
+            </figure>
+            <p>
+              لكثرة استخدام بعض الأوامر، وفّر Docker اختصارات لها. فمثلًا
+              <code>docker ps</code> اختصار لـ <code>docker container ls</code>،
+              و<code>docker run</code> اختصار لـ <code>docker container run</code>.
+            </p>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> لوحة القيادة وجهاز التحكّم</p>
+              <p>
+                <strong>Docker Desktop</strong> مثل لوحة قيادة السيارة: تراقب كل
+                شيء بصريًّا. أما <strong>الـ CLI</strong> فمثل جهاز تحكّم دقيق:
+                أسرع وأقوى للمهام المتكرّرة. المحرّك الحقيقي (Docker Engine) واحد
+                في الحالتين — تتحكّم به بالطريقة التي تناسبك.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>كيف يعمل Docker على Windows</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    subgraph WIN["Windows"]
+        CLI["Docker CLI + Docker Desktop"]
+        subgraph WSL["WSL 2 — نواة Linux"]
+            D["Docker Daemon (dockerd)"]
+            C1["Container"]
+            C2["Container"]
+            D --> C1
+            D --> C2
+        end
+        CLI -->|"أوامر"| D
+    end
+              </pre>
+              <figcaption>
+                تكتب الأوامر على Windows، لكن الحاويات تعمل فعليًّا داخل نواة
+                Linux عبر WSL 2.
+              </figcaption>
+            </figure>
+
+            <h3>بنية أمر Docker</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    A["docker"] --> B["container"]
+    B --> C["run"]
+    C --> D["-p 8080:80"]
+    D --> E["nginx"]
+    A -. اختصار .-> F["docker run"]
+              </pre>
+              <figcaption>
+                الأمر الكامل والاختصار يؤدّيان نفس الوظيفة.
+              </figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: التحقّق من التثبيت</h2>
+            <p>
+              أول ما تفعله بعد التثبيت هو التأكّد أن الـ Client يتحدّث مع الـ
+              Daemon. الأمر <code>docker version</code> يعرض إصداري الطرفين:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker version</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="المخرجات (مختصرة)">
+              <pre><code class="language-bash">Client:
+ Version:           27.3.1
+ API version:       1.47
+Server: Docker Desktop
+ Engine:
+  Version:          27.3.1
+  API version:      1.47 (minimum version 1.24)</code></pre>
+            </figure>
+            <p>
+              وجود قسمَي <code>Client</code> و<code>Server</code> معًا يعني أن كل
+              شيء يعمل. أما <code>docker info</code> فيعطي نظرة أشمل عن النظام:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker info</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="المخرجات (مقتطف)">
+              <pre><code class="language-bash">Server:
+ Containers: 0
+  Running: 0
+ Images: 0
+ Operating System: Docker Desktop
+ Total Memory: 7.6GiB</code></pre>
+            </figure>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي: أول حاوية</h2>
+            <p>الآن نشغّل الحاوية التقليدية للتأكّد أن السلسلة كاملة تعمل:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run hello-world</code></pre>
+            </figure>
+            <p>
+              لأن الـ Image غير موجودة محليًّا، يسحبها Docker من Docker Hub ثم يشغّلها
+              فتطبع رسالة نجاح:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="المخرجات (مختصرة)">
+              <pre><code class="language-bash">Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+Hello from Docker!
+This message shows that your installation appears to be working correctly.</code></pre>
+            </figure>
+
+            <p>
+              لنجرّب شيئًا نراه في المتصفح. سنشغّل خادم ويب <code>nginx</code> في
+              الخلفية ونربط منفذه:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d -p 8080:80 nginx</code></pre>
+            </figure>
+            <p>
+              افتح <code>http://localhost:8080</code> فترى صفحة nginx الافتراضية.
+              لعرض الحاويات العاملة:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker ps</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> ملاحظة</p>
+              <p>
+                لا تقلق بشأن تفاصيل <code>-d</code> و<code>-p</code> الآن — نشرحها
+                بالتفصيل في فصل الحاويات. يكفي أن ترى أن Docker يعمل.
+              </p>
+            </div>
+
+            <h3>الاستعانة بالمساعدة</h3>
+            <p>لا تحفظ الأوامر — اسأل Docker نفسه:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker --help          # all command groups
+docker run --help      # options for a specific command</code></pre>
+            </figure>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 2: تجهيز بيئة العمل</p>
+              <p>
+                هدف هذا المعمل أن تخرج بـ Docker يعمل على جهازك — وهو الأساس لكل
+                الفصول القادمة.
+              </p>
+              <ol>
+                <li>ثبّت Docker المناسب لنظامك (Desktop أو Engine).</li>
+                <li>نفّذ <code>docker version</code> وتأكّد من ظهور قسمَي Client و Server.</li>
+                <li>شغّل <code>docker run hello-world</code> وتأكّد من رسالة النجاح.</li>
+                <li>شغّل <code>docker run -d -p 8080:80 nginx</code>، ثم افتح <code>http://localhost:8080</code>.</li>
+                <li>نفّذ <code>docker ps</code> لرؤية الحاوية، ثم أوقفها بـ <code>docker stop &lt;container-id&gt;</code>.</li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> بيئة Docker جاهزة ومُتحقَّق منها.
+                في الفصل التالي نغوص في الـ Images وطبقاتها.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> «Cannot connect to the Docker daemon»</p>
+              <p>
+                يعني أن الـ Daemon لا يعمل. على Windows/macOS: افتح Docker Desktop
+                وانتظر حتى «Running». على Linux: <code>sudo systemctl start docker</code>.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> الحاجة إلى sudo دائمًا على Linux</p>
+              <p>
+                أضف مستخدمك إلى مجموعة docker (<code>sudo usermod -aG docker $USER</code>)
+                ثم سجّل الخروج والدخول مجددًا.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> «port is already allocated»</p>
+              <p>
+                المنفذ (مثلًا 8080) مستخدَم بالفعل. اختر منفذًا آخر مثل
+                <code>-p 9090:80</code>، أو أوقف ما يشغل المنفذ.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🔄 حدّث Docker باستمرار</h4>
+                <p>الإصدارات الحديثة أكثر أمانًا وأداءً وتدعم أحدث الميزات.</p>
+              </div>
+              <div class="card">
+                <h4>❓ اعتمد على <code>--help</code></h4>
+                <p>أسرع من البحث في الإنترنت، ويعرض الخيارات المتاحة لنسختك بالضبط.</p>
+              </div>
+              <div class="card">
+                <h4>🐧 على Linux: استخدم مجموعة docker</h4>
+                <p>تجنّب <code>sudo</code> المتكرّر بإضافة مستخدمك إلى المجموعة مرة واحدة.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة الأوامر (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>الأمر</th>
+                      <th>الوظيفة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>docker version</td><td>إصدار الـ Client والـ Server</td></tr>
+                    <tr><td>docker info</td><td>معلومات شاملة عن النظام</td></tr>
+                    <tr><td>docker --help</td><td>عرض كل مجموعات الأوامر</td></tr>
+                    <tr><td>docker &lt;cmd&gt; --help</td><td>خيارات أمر معيّن</td></tr>
+                    <tr><td>docker run hello-world</td><td>تشغيل أول حاوية للتحقّق</td></tr>
+                    <tr><td>docker run -d -p 8080:80 nginx</td><td>تشغيل حاوية في الخلفية مع ربط منفذ</td></tr>
+                    <tr><td>docker ps</td><td>عرض الحاويات العاملة</td></tr>
+                    <tr><td>docker stop &lt;id&gt;</td><td>إيقاف حاوية</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li>Docker Engine يعمل على Linux؛ وDocker Desktop يشغّله على Windows/macOS عبر طبقة Linux.</li>
+                <li>على Windows، WSL 2 هو نواة Linux التي تشغّل الحاويات فعليًّا.</li>
+                <li>تتحقّق من التثبيت بـ <code>docker version</code> (Client + Server) و<code>docker info</code>.</li>
+                <li>كل الأوامر تتبع بنية واحدة، ولها اختصارات، و<code>--help</code> صديقك.</li>
+              </ul>
+              <h3>أوامر مهمة</h3>
+              <ul>
+                <li><code>docker version</code> / <code>docker info</code></li>
+                <li><code>docker run hello-world</code> / <code>docker ps</code></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li>نسيان تشغيل Docker Desktop / خدمة docker.</li>
+                <li>استخدام منفذ مشغول عند ربط <code>-p</code>.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
+      defer
+    ></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

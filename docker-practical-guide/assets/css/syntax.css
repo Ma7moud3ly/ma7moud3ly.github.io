@@ -1,0 +1,71 @@
+/* ==========================================================================
+   syntax.css
+   Theme-aware Prism token colors. We deliberately do NOT load a Prism theme
+   from the CDN — only Prism core + language components — and colour the tokens
+   here with our CSS variables so highlighting matches light/dark automatically.
+   If Prism never loads, code simply renders in the base foreground colour.
+   ========================================================================== */
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+.token.punctuation {
+  color: var(--tok-punct);
+}
+.token.property,
+.token.tag,
+.token.boolean,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: var(--tok-tag);
+}
+.token.number {
+  color: var(--tok-number);
+}
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: var(--tok-string);
+}
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: var(--tok-operator);
+}
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: var(--tok-keyword);
+}
+.token.function,
+.token.class-name {
+  color: var(--tok-function);
+}
+.token.regex,
+.token.important,
+.token.variable {
+  color: var(--tok-attr);
+}
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+.token.italic {
+  font-style: italic;
+}
+
+/* YAML / properties keys */
+.token.key,
+.language-yaml .token.key {
+  color: var(--tok-attr);
+}

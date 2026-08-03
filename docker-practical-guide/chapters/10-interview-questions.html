@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل العاشر: بنك أسئلة مقابلات Docker — مجموعة منظّمة من أسئلة المقابلات الحقيقية مع إجابات دقيقة، مرتّبة حسب الموضوع من الأساسيات حتى الإنتاج."
+    />
+    <title>الفصل 10: أسئلة المقابلات — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="10">
+            <!-- ============ Introduction ============ -->
+            <h1>الفصل 10: أسئلة المقابلات</h1>
+            <p>
+              هذا الفصل بنك أسئلة مقابلات Docker الحقيقية، مرتّبة حسب الموضوع مع
+              إجابات مختصرة ودقيقة. اقرأ السؤال، جرّب الإجابة بنفسك، ثم افتح الحل.
+            </p>
+            <p>الأسئلة تتدرّج من الأساسيات إلى موضوعات الإنتاج المتقدّمة.</p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge">كل المستويات</span>
+              </span>
+              <span class="chapter-meta__item">🎤 أكثر من 60 سؤالًا</span>
+            </div>
+
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> كيف تستفيد من هذا الفصل</p>
+              <p>
+                لا تحفظ الإجابات. افهم <em>لماذا</em>، وربطها بما فعلته في المعامل.
+                المُحاوِر الجيّد يسأل «لماذا» و«ماذا يحدث لو»، لا التعريفات فقط.
+              </p>
+            </div>
+
+            <!-- ============ 1. Fundamentals ============ -->
+            <h2>1. أساسيات Docker والحاويات</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما مشكلة «works on my machine» وكيف يحلّها Docker؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>تنشأ من اختلاف بيئة التشغيل بين الأجهزة (إصدار runtime، إعدادات، dependencies). يحزم Docker التطبيق مع بيئته كاملة في Image واحدة تعمل بنفس الطريقة في كل مكان، فيلغي هذا الاختلاف.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين Virtual Machine و Container؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>الـ VM يحاكي جهازًا كاملًا بنظام تشغيل ضيف فوق Hypervisor، فهو ثقيل (جيجابايتات) وبطيء الإقلاع. الـ Container عملية معزولة تتشارك نواة (kernel) المضيف، فهو خفيف (ميجابايتات) وسريع (ثوانٍ) وأعلى كثافة.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين Image و Container؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>الـ Image قالب ثابت للقراءة فقط يحوي التطبيق وبيئته. الـ Container نسخة حيّة قابلة للتشغيل منه. من Image واحدة نشغّل عدة Containers (مثل Class و Object).</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>هل تحتوي الحاوية على نظام تشغيل كامل؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لا. تحوي ملفات التطبيق وبيئته فقط، وتتشارك نواة نظام التشغيل المضيف. لهذا هي أخف وأسرع من الـ VM.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>اشرح معمارية Docker.</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>ثلاثة مكوّنات: <strong>Docker Client</strong> (الأوامر التي تكتبها)، <strong>Docker Daemon</strong> (الخادم الذي يبني ويشغّل)، و<strong>Registry</strong> (مخزن الـ Images مثل Docker Hub). يعمل بنموذج Client/Server عبر REST API.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما دور Docker Daemon؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>العملية الخلفية (<code>dockerd</code>) التي تستقبل طلبات الـ Client وتنفّذها فعليًّا: بناء الـ Images وسحبها وتشغيل الحاويات وإدارتها.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>اذكر مراحل دورة حياة الحاوية.</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>Created (<code>docker create</code>) ← Running (<code>start</code>) ← قد تمرّ بـ Paused ← Stopped (<code>stop</code>) ← Removed (<code>rm</code>). و<code>docker run</code> يجمع الإنشاء والتشغيل.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>على Windows، أين تعمل الحاويات فعليًّا؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>الـ CLI (<code>docker.exe</code>) يعمل أصلًا على Windows، لكن الـ Engine والحاويات تعمل داخل <strong>WSL 2</strong> لأن الحاويات تحتاج نواة Linux. الـ Client يرسل الأوامر عبر API إلى الـ Daemon في WSL 2.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>هل يُلغي Docker الحاجة إلى بيئة التشغيل (runtime)؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لا. Docker لا يستبدل الـ runtime بل يحزمه. تطبيق Java مثلًا ما زال يحتاج JRE، لكنه الآن داخل الـ Image بإصدار محدّد نتحكّم به.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 2. Images ============ -->
+            <h2>2. الـ Images والطبقات والسجلات</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>مِمَّ يتكوّن الـ Image؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>من طبقات (layers) ثابتة مكدّسة، كل طبقة تمثّل تغييرًا فوق ما قبلها، بالإضافة إلى metadata تصف كيفية تشغيله.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما فائدة تقسيم الـ Image إلى layers؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>المشاركة والـ caching: الطبقات المشتركة تُخزَّن مرة واحدة، وعند البناء أو السحب تُعالَج الطبقات الجديدة فقط — توفير للمساحة والوقت.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>أين تُكتب تغييرات حاوية عاملة؟ وماذا يحدث لها عند الحذف؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>في طبقة كتابة رقيقة (writable layer) فوق طبقات الـ Image الثابتة (copy-on-write). تختفي هذه الطبقة بحذف الحاوية، لذلك نستخدم volume للبيانات الدائمة.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>اشرح اسم الـ Image <code>docker.io/library/nginx:1.27</code>.</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>docker.io</code> = الـ Registry، <code>library/nginx</code> = الـ Repository (و<code>library/</code> للصور الرسمية)، و<code>1.27</code> = الـ Tag.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين tag و digest؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>الـ tag اسم قابل للتغيير قد يُعاد توجيهه لمحتوى آخر. الـ digest بصمة <code>sha256</code> للمحتوى، ثابتة لا تتغيّر، فتضمن سحب نفس المحتوى بالضبط دائمًا.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>لماذا يُنصح بتجنّب <code>latest</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لأنه وسم افتراضي قد يشير إلى إصدار مختلف بين الأجهزة أو مع الوقت، فتفقد قابلية التكرار (reproducibility). ثبّت وسمًا صريحًا.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>هل ينسخ <code>docker tag</code> الـ Image؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لا. يضيف اسمًا (مرجعًا) جديدًا يشير إلى نفس الطبقات. حذف أحد الأسماء لا يحذف الطبقات ما دام اسم آخر يشير إليها.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما شرط دفع Image إلى Docker Hub؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>docker login</code>، وأن يبدأ اسم الـ Image باسم المستخدم/المنظمة (<code>username/repo:tag</code>)، ثم <code>docker push</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تقلّل حجم الـ Image؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>base صغيرة (<code>jre</code> لا <code>jdk</code>)، multi-stage build، ترتيب التعليمات للـ caching، <code>.dockerignore</code>، ودمج أوامر <code>RUN</code> وإزالة الملفات المؤقّتة.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 3. Containers ============ -->
+            <h2>3. تشغيل الحاويات وإدارتها</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين <code>docker run</code> و <code>docker start</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>run</code> ينشئ حاوية جديدة من Image ويشغّلها. <code>start</code> يعيد تشغيل حاوية موجودة متوقّفة دون إنشاء جديدة.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ماذا يعني <code>-d</code> و <code>-it</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>-d</code> (detached): تشغيل في الخلفية. <code>-it</code> = <code>-i</code> (إبقاء المدخل مفتوحًا) + <code>-t</code> (طرفية TTY)، لجلسة تفاعلية مثل shell.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين <code>docker stop</code> و <code>docker kill</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>stop</code> يرسل SIGTERM ويمهل العملية للإغلاق النظيف ثم SIGKILL. <code>kill</code> يرسل SIGKILL فورًا دون مهلة.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين <code>exec</code> و <code>attach</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>exec</code> يشغّل عملية جديدة (مثل shell) داخل حاوية عاملة. <code>attach</code> يصلك بالعملية الرئيسية (PID 1)، وإغلاقها قد يوقف الحاوية.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>لماذا تتوقّف الحاوية فور تشغيلها أحيانًا؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لأن الحاوية تعيش ما دامت عمليتها الرئيسية (PID 1) حيّة. إن انتهت العملية (لا خدمة طويلة الأمد) توقّفت الحاوية. راجع السبب بـ <code>docker logs</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما سياسات إعادة التشغيل (restart policies)؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>no</code> (افتراضي)، <code>on-failure</code> عند الأخطاء، <code>always</code> دائمًا، <code>unless-stopped</code> إلا إذا أوقفتها يدويًّا — مفيدة بعد إعادة إقلاع الجهاز.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تحذف كل الحاويات المتوقّفة؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>docker container prune</code>. ولحذف حاوية عاملة بالقوة: <code>docker rm -f &lt;name&gt;</code>.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 4. Dockerfile ============ -->
+            <h2>4. Dockerfile</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين <code>COPY</code> و <code>ADD</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>كلاهما ينسخ ملفات. <code>ADD</code> يفكّ أرشيفات tar تلقائيًّا وينزّل من رابط. نفضّل <code>COPY</code> لوضوحه، و<code>ADD</code> عند الحاجة الصريحة فقط.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين <code>CMD</code> و <code>ENTRYPOINT</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>ENTRYPOINT</code> البرنامج الثابت الذي يعمل دائمًا. <code>CMD</code> وسائط افتراضية قابلة للتغيير عند التشغيل. يُدمجان غالبًا: entrypoint للبرنامج و cmd للوسائط.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين <code>RUN</code> و <code>CMD</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>RUN</code> يُنفَّذ وقت <strong>البناء</strong> ويصنع طبقة (مثل تثبيت أداة). <code>CMD</code> يحدّد ما يُنفَّذ وقت <strong>تشغيل</strong> الحاوية.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>لماذا نفضّل exec form على shell form؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>صيغة الأقواس (exec form) تشغّل البرنامج مباشرةً كـ PID 1، فتصله إشارة SIGTERM ويتوقّف بشكل نظيف. صيغة النصّ (shell form) تمرّ عبر shell وتكسر تسليم الإشارة فيبطؤ الإيقاف.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما «build context» وما دور <code>.dockerignore</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>الملفات في المسار الممرّر لـ <code>docker build</code> والتي تُرسَل إلى الـ Daemon. <code>.dockerignore</code> يستبعد ما لا يلزم (مثل <code>.git</code>) فيصغُر السياق ويسرع البناء.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>لماذا يؤثّر ترتيب التعليمات على caching؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>تغيير تعليمة يُبطل طبقتها وكل ما بعدها. وضع النادر التغيّر أولًا (مثل dependencies) والكود المتغيّر أخيرًا يعيد استخدام أكبر عدد من الطبقات.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>هل ينشر <code>EXPOSE</code> المنفذ؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لا، هو توثيق فقط. النشر الفعلي للمضيف يتم بـ <code>-p host:container</code> وقت التشغيل.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما multi-stage build ولماذا نستخدمه؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>بناء على عدة مراحل: مرحلة تبني الـ artifact بأدوات البناء، ومرحلة تشغيل تأخذ الـ artifact فقط. النتيجة Image أصغر وأأمن دون أدوات بناء ولا كود مصدري. ينسخ <code>COPY --from=build</code> من مرحلة سابقة.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>لماذا نشغّل الحاوية بمستخدم non-root؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لتقليل أثر أي اختراق. نُنشئ مستخدمًا محدود الصلاحيات ونشغّل به عبر <code>USER</code>، فلا يحصل المهاجم على صلاحيات واسعة داخل الحاوية أو المضيف.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 5. Volumes ============ -->
+            <h2>5. التخزين (Volumes)</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>لماذا تكون بيانات الحاوية سريعة الزوال؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لأنها تُكتب في طبقة الكتابة الخاصة بالحاوية، وتُحذف بحذفها. للاحتفاظ بها نخزّنها في volume مستقل عن دورة حياة الحاوية.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين Named Volume و Bind Mount؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>الـ Named Volume يديره Docker في منطقته الداخلية، الأنسب للبيانات الدائمة والقابلة للنقل. الـ Bind Mount يربط مسارًا من المضيف، الأنسب للتطوير حيث تنعكس التغييرات فورًا.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تحفظ بيانات PostgreSQL بثبات؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>بربط Named Volume بمجلد بياناتها: <code>-v tasks-db:/var/lib/postgresql/data</code>، فتبقى بعد حذف الحاوية.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>هل يحذف <code>docker rm</code> الـ volume المرتبط؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لا. الـ Named Volume يبقى (حمايةً للبيانات). يُحذف صراحةً بـ <code>docker volume rm</code>، أو <code>docker volume prune</code> لغير المستخدم.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الـ anonymous volume ولماذا ننتبه له؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>volume بلا اسم يُنشئه Docker تلقائيًّا (غالبًا عبر تعليمة <code>VOLUME</code>). يصعب تتبّعه ويتراكم، لذا نفضّل تسمية الـ volumes وننظّف غير المستخدم بـ <code>prune</code>.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 6. Networking ============ -->
+            <h2>6. الشبكات (Networking)</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين default bridge و user-defined bridge؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>على الشبكة المعرّفة يعمل DNS الداخلي فتتعارف الحاويات بالاسم؛ على الافتراضية تتصل بعناوين IP فقط. لذا ننشئ شبكة معرّفة لأي تطبيق متعدّد الحاويات.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تجد الحاويات بعضها؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>عبر DNS الداخلي على شبكة معرّفة مشتركة: يصبح اسم الحاوية hostname يمكن للأخرى الاتصال به مباشرةً.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ماذا يفعل <code>-p 8080:80</code> وما الفرق عن <code>EXPOSE</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>ينشر منفذ الحاوية <code>80</code> على منفذ المضيف <code>8080</code> (الصيغة <code>host:container</code>)، فيصبح الوصول من خارج Docker متاحًا. <code>EXPOSE</code> توثيق فقط ولا ينشر شيئًا.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>لماذا لا نستخدم <code>localhost</code> بين حاويتين؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لأن <code>localhost</code> داخل الحاوية يشير إلى الحاوية نفسها، لا إلى حاوية أخرى أو المضيف. نستخدم اسم الحاوية الهدف على الشبكة المشتركة.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما شبكة <code>host</code> ومتى تُستخدم؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>تجعل الحاوية تشارك network stack الخاص بالمضيف مباشرةً دون عزل ولا حاجة لـ <code>-p</code>. مفيدة للأداء على Linux، لكنها تفقد العزل وتعمل بكامل مزاياها على Linux فقط.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>هل تتواصل حاويتان على شبكتين مختلفتين؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>لا، إلا إذا وُصلت إحداهما بالشبكة الأخرى (<code>docker network connect</code>) أو شاركتا شبكة واحدة.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 7. Compose ============ -->
+            <h2>7. Docker Compose</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما هو Docker Compose ومتى تستخدمه؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>أداة لوصف وتشغيل تطبيق متعدّد الحاويات من ملف <code>compose.yaml</code> واحد. تستخدمه حين يتكوّن التطبيق من عدة خدمات (تطبيق + قاعدة + كاش…) تُدار معًا.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما أقسام <code>compose.yaml</code> الأساسية؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>services</code> (الحاويات)، <code>volumes</code> (التخزين الدائم)، و<code>networks</code> (اختياري لأن Compose ينشئ واحدة تلقائيًّا).</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تجد الخدمات بعضها في Compose؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>يضع Compose كل الخدمات على شبكة معرّفة واحدة، فتصل كل خدمة إلى الأخرى باسم الخدمة كـ hostname عبر DNS الداخلي.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين <code>down</code> و <code>stop</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>stop</code> يوقف الحاويات فقط. <code>down</code> يوقفها ويحذفها مع الشبكة. الـ Named Volumes تبقى إلا مع <code>down -v</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ماذا يضمن <code>depends_on</code>؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>ترتيب <em>البدء</em> فقط، لا الجاهزية لقبول الاتصالات. للجاهزية نستخدم health check مع <code>condition: service_healthy</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تمرّر الإعدادات والأسرار دون كتابتها في الملف؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>عبر ملف <code>.env</code> بجانب <code>compose.yaml</code> ثم <code>${VAR}</code> داخل الملف. للإنتاج تُستخدم أدوات أسرار مخصّصة، ولا تُرفع القيم إلى Git.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الفرق بين <code>image</code> و <code>build</code> في الخدمة؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>image</code> يستخدم Image جاهزة من سجل. <code>build</code> يبني الـ Image من <code>Dockerfile</code> محلي وقت التشغيل.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 8. Real apps & Production ============ -->
+            <h2>8. التطبيقات الحقيقية والإنتاج</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تضبط اتصال تطبيق بقاعدة داخل حاوية؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>عبر متغيّرات البيئة (مبدأ 12-factor) بدل كتابة الإعدادات في الكود، فيمكن تغييرها لكل بيئة دون إعادة بناء الـ Image.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما الذي نضعه مكان المضيف في رابط اتصال القاعدة؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>اسم خدمة القاعدة على الشبكة (مثل <code>db</code>)، لأن الخدمات تتعارف بالاسم. ليس <code>localhost</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تنتظر جاهزية القاعدة قبل بدء التطبيق؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p><code>depends_on</code> وحده يضمن البدء لا الجاهزية. نضيف health check للقاعدة (<code>pg_isready</code>) ونجعل التطبيق ينتظر <code>condition: service_healthy</code>. ويُستحسن أن يعيد التطبيق المحاولة عند فشل الاتصال.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تفحص صحّة التطبيق داخل الحاوية؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>عبر نقطة health يوفّرها التطبيق (في Spring Boot: Actuator و<code>/actuator/health</code>) نستعملها في <code>HEALTHCHECK</code> أو المنسّق (orchestrator).</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>أين تضع الأسرار في الإنتاج؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>خارج الـ Image دائمًا: متغيّرات بيئة أو أداة إدارة أسرار، تُمرّر وقت التشغيل. لا تُبنى داخل الطبقات (يمكن استخراجها) ولا تُرفع إلى سجل عام.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>لماذا نراعي ذاكرة الـ JVM داخل الحاوية؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>يجب أن يحترم الـ JVM حدود ذاكرة الحاوية لا ذاكرة المضيف. نضبط <code>-XX:MaxRAMPercentage</code> لتفادي تجاوز الذاكرة وقتل الحاوية (OOM Killed).</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تفحص Image بحثًا عن ثغرات؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>بأدوات مثل <code>docker scout</code> أو Trivy، تفحص الطبقات والحزم مقابل قواعد بيانات الثغرات المعروفة، وتُدمج غالبًا في خط الـ CI.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>ما دور CI/CD مع Docker؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>أتمتة بناء الـ Image وفحصها ودفعها إلى سجل عند كل تغيير، ثم نشرها. فتصبح الإصدارات متّسقة وقابلة للتكرار وسريعة، دون خطوات يدوية.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>كيف تجعل بناء الـ Image قابلًا للتكرار (reproducible)؟</span></div>
+              <div class="interview__body"><details><summary>عرض الإجابة</summary>
+                <p>ثبّت وسوم الأساس (وربما digest)، ابنِ داخل Docker عبر multi-stage (لا تعتمد على جهازك)، استخدم <code>.dockerignore</code>، وثبّت إصدارات الـ dependencies.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ Closing tips ============ -->
+            <div class="summary-box">
+              <h2>نصائح سريعة للمقابلة</h2>
+              <ul>
+                <li>اربط كل إجابة بمثال عملي فعلته (بناء Image، volume، شبكة، Compose).</li>
+                <li>عندما تُسأل «لماذا»، اذكر البديل وعيوبه، لا التعريف فقط.</li>
+                <li>كن صريحًا فيما لا تعرفه، ثم اشرح كيف ستبحث عنه.</li>
+                <li>راجع الفروق الشائعة: Image/Container، CMD/ENTRYPOINT، volume/bind mount، bridge الافتراضية/المعرّفة.</li>
+              </ul>
+            </div>
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

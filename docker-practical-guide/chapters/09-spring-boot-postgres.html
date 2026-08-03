@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل التاسع: Spring Boot مع PostgreSQL — حاويّة تطبيق Spring Boot، ربطه بالقاعدة عبر متغيّرات البيئة، compose.yaml مع volume دائم و health check وانتظار جاهزية القاعدة."
+    />
+    <title>الفصل 9: Spring Boot مع PostgreSQL — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="9">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 9: Spring Boot مع PostgreSQL</h1>
+            <p>
+              الآن نجمع كل ما تعلّمناه على تطبيق حقيقي: خدمة
+              <strong>Spring Boot</strong> مع قاعدة <strong>PostgreSQL</strong>،
+              داخل حاويات، ببيانات دائمة، وبانتظار صحيح لجاهزية القاعدة.
+            </p>
+            <p>
+              هنا يظهر لماذا كل فصل سابق كان مهمًّا: Image للتطبيق، volume للبيانات،
+              شبكة للتواصل بالاسم، و Compose ليجمعها.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--advanced">متقدّم</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تبني Image لتطبيق Spring Boot.</li>
+              <li>تربط Spring Boot بـ PostgreSQL عبر متغيّرات البيئة.</li>
+              <li>تكتب <code>compose.yaml</code> للتطبيق والقاعدة مع volume دائم.</li>
+              <li>تضيف health check وتنتظر جاهزية القاعدة قبل بدء التطبيق.</li>
+              <li>تستخدم Spring profile خاصًّا بالحاويات.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <ul>
+              <li>إنهاء الفصل 5 (Dockerfile) والفصل 8 (Compose).</li>
+              <li>تطبيق Spring Boot يستخدم PostgreSQL (أو خدمة المهام من هذا الدليل).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>حاويّة تطبيق Spring Boot</h2>
+            <p>
+              يبني Spring Boot ملف <code>jar</code> واحدًا يحوي كل شيء (fat jar).
+              حاويّته إذًا بسيطة: Image فيها JRE، ننسخ الـ jar، ونشغّله. لا فرق جوهري عن
+              أي تطبيق Java.
+            </p>
+
+            <h2>ربط Spring بالقاعدة عبر البيئة</h2>
+            <p>
+              لا نكتب رابط القاعدة داخل الكود. يقرأ Spring Boot الإعدادات من
+              متغيّرات البيئة، فنمرّرها للحاوية:
+            </p>
+            <ul>
+              <li><code>SPRING_DATASOURCE_URL</code> — رابط JDBC للقاعدة.</li>
+              <li><code>SPRING_DATASOURCE_USERNAME</code> — اسم المستخدم.</li>
+              <li><code>SPRING_DATASOURCE_PASSWORD</code> — كلمة المرور.</li>
+            </ul>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> الوصول بالاسم</p>
+              <p>
+                في رابط القاعدة نستخدم اسم الخدمة كـ hostname:
+                <code>jdbc:postgresql://db:5432/tasks</code>. الكلمة <code>db</code>
+                هي اسم خدمة القاعدة في Compose، لا <code>localhost</code>.
+              </p>
+            </div>
+
+            <h2>Health check وانتظار الجاهزية</h2>
+            <p>
+              رأينا أن <code>depends_on</code> يضمن أن القاعدة <em>بدأت</em>، لا أنها
+              <em>جاهزة</em>. الحل هو <strong>health check</strong> للقاعدة، ثم جعل
+              التطبيق ينتظر حتى تصبح «صحّية»:
+            </p>
+            <ul>
+              <li>القاعدة: أمر فحص <code>pg_isready</code> يتكرّر حتى تنجح.</li>
+              <li>التطبيق: <code>depends_on</code> مع <code>condition: service_healthy</code>.</li>
+            </ul>
+            <p>
+              ولتطبيق Spring نفسه، يوفّر <strong>Actuator</strong> نقطة
+              <code>/actuator/health</code> نستعملها لفحص صحّة التطبيق.
+            </p>
+
+            <h2>Spring profile للحاويات</h2>
+            <p>
+              نفعّل profile خاصًّا بالبيئة الحاوية عبر
+              <code>SPRING_PROFILES_ACTIVE=docker</code>، فتُطبَّق إعدادات
+              <code>application-docker.properties</code> عند التشغيل في الحاوية.
+            </p>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> لا تبدأ قبل أن يجهز شريكك</p>
+              <p>
+                التطبيق والقاعدة كزميلَي عمل: لا فائدة أن يبدأ التطبيق ويطلب
+                البيانات قبل أن تفتح القاعدة أبوابها. الـ health check هو «إشارة
+                الجاهزية» التي ينتظرها التطبيق.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>بنية الحزمة</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    B["المتصفّح"] -->|"HTTP :8080"| APP["Spring Boot app"]
+    APP -->|"JDBC → db:5432"| DB["PostgreSQL"]
+    DB --> V[("volume: tasks-db")]
+              </pre>
+              <figcaption>التطبيق يتحدّث إلى القاعدة بالاسم، والبيانات في volume دائم.</figcaption>
+            </figure>
+
+            <h3>الإقلاع مع health check</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    S["db يبدأ"] --> H{"pg_isready؟"}
+    H -->|"ليس بعد"| H
+    H -->|"صحّية"| A["app يبدأ ويتصل"]
+              </pre>
+              <figcaption>ينتظر التطبيق حتى تصبح القاعدة جاهزة فعلًا.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: الـ Dockerfile و compose.yaml</h2>
+            <p><strong>1) Dockerfile</strong> لتطبيق Spring Boot (ملف jar جاهز في <code>target/</code>):</p>
+            <figure class="code-block" data-lang="dockerfile" data-title="Dockerfile">
+              <pre><code class="language-docker"># Runtime-only image is enough to run a Spring Boot fat jar
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY target/tasks-service.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]</code></pre>
+            </figure>
+
+            <p><strong>2) compose.yaml</strong> بالتطبيق والقاعدة و health check و volume:</p>
+            <figure class="code-block" data-lang="yaml" data-title="compose.yaml">
+              <pre><code class="language-yaml">services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: tasks
+    volumes:
+      - tasks-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tasks"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .                 # build the image from the local Dockerfile
+    image: tasks-service:1.0
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tasks
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: secret
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      db:
+        condition: service_healthy   # wait until the DB is actually ready
+
+volumes:
+  tasks-db:</code></pre>
+            </figure>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي: تشغيل الحزمة والتحقّق</h2>
+            <p><strong>ابنِ وشغّل</strong> في خطوة واحدة:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose up -d --build</code></pre>
+            </figure>
+            <p><strong>تابع سجلّات التطبيق</strong> حتى يتّصل بالقاعدة:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose logs -f app</code></pre>
+            </figure>
+            <p><strong>تحقّق من صحّة التطبيق</strong> عبر Actuator:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">curl http://localhost:8080/actuator/health</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="json" data-title="المخرجات">
+              <pre><code class="language-json">{"status":"UP"}</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> اختبر الاستمرارية</p>
+              <p>
+                أنشئ بيانات عبر التطبيق، ثم <code>docker compose down</code> ثم
+                <code>up -d</code>. البيانات تبقى لأنها في الـ volume، لا في الحاوية.
+              </p>
+            </div>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 9: حزمة Spring Boot كاملة</p>
+              <p>هدف المعمل: تطبيق Spring Boot يعمل مع PostgreSQL ببيانات دائمة وانتظار صحيح.</p>
+              <ol>
+                <li>ابنِ jar التطبيق.</li>
+                <li>أضف <code>Dockerfile</code> و<code>compose.yaml</code> كما في المثال.</li>
+                <li>فعّل Actuator (dependency <code>spring-boot-starter-actuator</code>) لنقطة الصحّة.</li>
+                <li>شغّل: <code>docker compose up -d --build</code>.</li>
+                <li>تحقّق من <code>/actuator/health</code>، ثم جرّب نقطة تنشئ بيانات.</li>
+                <li>نفّذ <code>down</code> ثم <code>up -d</code> وتأكّد أن البيانات بقيت.</li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> حزمة Spring Boot + PostgreSQL تعمل بأمر
+                واحد — تطبيقك الآن كامل داخل حاويات. 🎉
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> استخدام <code>localhost</code> في رابط القاعدة</p>
+              <p>داخل الحاوية <code>localhost</code> يعني التطبيق نفسه. استخدم اسم الخدمة: <code>jdbc:postgresql://db:5432/tasks</code>.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> بدء التطبيق قبل جاهزية القاعدة</p>
+              <p><code>depends_on</code> وحده لا يكفي. أضف health check للقاعدة مع <code>condition: service_healthy</code>.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> نسيان volume القاعدة</p>
+              <p>بلا volume تضيع بيانات القاعدة عند <code>down</code>. اربط <code>tasks-db</code> بمجلد بياناتها.</p>
+            </div>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> لا تضع الأسرار في الـ Image</p>
+              <p>كلمات المرور تُمرّر وقت التشغيل عبر البيئة أو <code>.env</code>، لا تُبنى داخل الـ Image.</p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>⚙️ الإعدادات من البيئة</h4>
+                <p>مرّر رابط القاعدة وبياناتها عبر متغيّرات البيئة (مبدأ 12-factor).</p>
+              </div>
+              <div class="card">
+                <h4>❤️ Actuator للصحّة</h4>
+                <p>استخدم <code>/actuator/health</code> لفحص صحّة التطبيق داخل Compose أو المنسّق.</p>
+              </div>
+              <div class="card">
+                <h4>⏳ انتظر الجاهزية</h4>
+                <p>health check + <code>service_healthy</code> بدل الاعتماد على ترتيب البدء فقط.</p>
+              </div>
+              <div class="card">
+                <h4>🧬 profile للحاوية</h4>
+                <p><code>SPRING_PROFILES_ACTIVE=docker</code> لفصل إعدادات الحاوية.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة المرجع (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>العنصر</th><th>الاستخدام</th></tr></thead>
+                  <tbody>
+                    <tr><td>SPRING_DATASOURCE_URL</td><td>jdbc:postgresql://db:5432/tasks</td></tr>
+                    <tr><td>SPRING_DATASOURCE_USERNAME / _PASSWORD</td><td>بيانات دخول القاعدة</td></tr>
+                    <tr><td>SPRING_PROFILES_ACTIVE</td><td>تفعيل profile (docker)</td></tr>
+                    <tr><td>healthcheck: pg_isready ...</td><td>فحص جاهزية القاعدة</td></tr>
+                    <tr><td>depends_on: condition: service_healthy</td><td>انتظار جاهزية القاعدة</td></tr>
+                    <tr><td>/actuator/health</td><td>صحّة تطبيق Spring Boot</td></tr>
+                    <tr><td>docker compose up -d --build</td><td>بناء وتشغيل الحزمة</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li>حاويّة Spring Boot = Image فيها JRE + نسخ الـ jar + تشغيله.</li>
+                <li>اضبط القاعدة عبر <code>SPRING_DATASOURCE_*</code>، وصِل بالاسم <code>db</code>.</li>
+                <li>health check + <code>service_healthy</code> يضمنان بدء التطبيق بعد جاهزية القاعدة.</li>
+                <li>volume للقاعدة يحفظ البيانات، و Actuator يفحص الصحّة.</li>
+              </ul>
+              <h3>عناصر مهمة</h3>
+              <ul>
+                <li><code>SPRING_DATASOURCE_URL</code> / <code>SPRING_PROFILES_ACTIVE</code></li>
+                <li><code>healthcheck</code> / <code>condition: service_healthy</code></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li><code>localhost</code> في رابط القاعدة.</li>
+                <li>بدء التطبيق قبل جاهزية القاعدة.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

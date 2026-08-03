@@ -1,0 +1,486 @@
+/* ==========================================================================
+   components.css
+   Reusable content components: typography, callouts, code blocks, cards,
+   chapter meta, badges, tables, chapter navigation.
+   ========================================================================== */
+
+/* -------- Content typography -------- */
+.content__inner h1,
+.content__inner h2,
+.content__inner h3,
+.content__inner h4 {
+  line-height: 1.35;
+  scroll-margin-top: calc(var(--header-h) + var(--sp-4));
+}
+.content__inner h1 {
+  font-size: 2.1rem;
+  margin: 0 0 var(--sp-4);
+  font-weight: 800;
+}
+.content__inner h2 {
+  font-size: 1.55rem;
+  margin: var(--sp-8) 0 var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  font-weight: 700;
+}
+.content__inner h3 {
+  font-size: 1.2rem;
+  margin: var(--sp-6) 0 var(--sp-2);
+  font-weight: 700;
+}
+.content__inner p {
+  margin: 0 0 var(--sp-4);
+}
+.content__inner a {
+  color: var(--link);
+  text-decoration: none;
+}
+.content__inner a:hover {
+  text-decoration: underline;
+}
+.content__inner ul,
+.content__inner ol {
+  margin: 0 0 var(--sp-4);
+  padding-inline-start: var(--sp-6);
+}
+.content__inner li {
+  margin: var(--sp-2) 0;
+}
+.content__inner hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--sp-8) 0;
+}
+.content__inner strong {
+  font-weight: 700;
+}
+
+/* Heading anchor link (added by JS) */
+.heading-anchor {
+  opacity: 0;
+  margin-inline-start: var(--sp-2);
+  color: var(--text-faint);
+  text-decoration: none;
+  font-size: 0.8em;
+}
+h2:hover .heading-anchor,
+h3:hover .heading-anchor {
+  opacity: 1;
+}
+
+/* -------- Chapter meta bar -------- */
+.chapter-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-6);
+  padding: var(--sp-4);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.chapter-meta__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.chapter-meta__item strong {
+  color: var(--text);
+}
+.chapter-meta .badge {
+  font-size: var(--fs-xs);
+}
+
+/* Difficulty / generic badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+}
+.badge--beginner {
+  color: var(--tip);
+  border-color: var(--tip);
+  background: var(--tip-bg);
+}
+.badge--intermediate {
+  color: var(--warning);
+  border-color: var(--warning);
+  background: var(--warning-bg);
+}
+.badge--advanced {
+  color: var(--important);
+  border-color: var(--important);
+  background: var(--important-bg);
+}
+
+/* -------- Learning objectives list -------- */
+.objectives {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--sp-4);
+}
+.objectives li {
+  position: relative;
+  padding-inline-start: var(--sp-6);
+  margin: var(--sp-2) 0;
+}
+.objectives li::before {
+  content: "✓";
+  position: absolute;
+  inset-inline-start: 0;
+  color: var(--tip);
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   Callouts (Note / Tip / Warning / Important / Exercise)
+   ========================================================================== */
+.callout {
+  --c: var(--note);
+  --c-bg: var(--note-bg);
+  position: relative;
+  margin: var(--sp-5) 0;
+  padding: var(--sp-4) var(--sp-4) var(--sp-4) var(--sp-4);
+  border: 1px solid var(--border);
+  border-inline-start: 4px solid var(--c);
+  border-radius: var(--radius);
+  background: var(--c-bg);
+}
+.callout__title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-2);
+  font-weight: 700;
+  color: var(--c);
+}
+.callout__title .ico {
+  font-size: 1.1em;
+}
+.callout > :last-child {
+  margin-bottom: 0;
+}
+.callout p {
+  margin-bottom: var(--sp-2);
+}
+
+.callout--note      { --c: var(--note);      --c-bg: var(--note-bg); }
+.callout--tip       { --c: var(--tip);       --c-bg: var(--tip-bg); }
+.callout--warning   { --c: var(--warning);   --c-bg: var(--warning-bg); }
+.callout--important { --c: var(--important); --c-bg: var(--important-bg); }
+
+/* Exercise: gray card */
+.callout--exercise {
+  --c: var(--exercise);
+  --c-bg: var(--exercise-bg);
+  border-inline-start-width: 4px;
+}
+
+/* Interview question: dark header card */
+.interview {
+  margin: var(--sp-5) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.interview__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--interview);
+  color: var(--bg);
+  font-weight: 700;
+}
+:root[data-theme="dark"] .interview__header {
+  background: #21262d;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+/* Inline code inside the dark header: inherit the header's light text and use a
+   translucent tint, so it stays readable in both themes (the default light code
+   background would otherwise hide the near-white text in light mode). */
+.interview__header code {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: transparent;
+  color: inherit;
+}
+.interview__body {
+  padding: var(--sp-4);
+}
+.interview details {
+  margin-top: var(--sp-3);
+}
+.interview summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  user-select: none;
+}
+.interview details[open] summary {
+  margin-bottom: var(--sp-2);
+}
+
+/* ==========================================================================
+   Code blocks
+   ========================================================================== */
+.code-block {
+  margin: var(--sp-5) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-code);
+}
+.code-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+  /* file/terminal labels are always LTR */
+  direction: ltr;
+}
+.code-block__lang {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.copy-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.copy-btn.is-copied {
+  color: var(--tip);
+  border-color: var(--tip);
+}
+
+/* pre/code always render LTR even inside an RTL page */
+.code-block pre {
+  margin: 0;
+  padding: var(--sp-4);
+  overflow-x: auto;
+  direction: ltr;
+  text-align: left;
+}
+.code-block pre code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  tab-size: 2;
+}
+
+/* Inline code */
+:not(pre) > code {
+  direction: ltr;
+  unicode-bidi: embed;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 0.12em 0.4em;
+  border-radius: 5px;
+  background: var(--bg-inline-code);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+.table-wrap {
+  margin: var(--sp-5) 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+th,
+td {
+  padding: var(--sp-3);
+  text-align: start;
+  border-bottom: 1px solid var(--border-subtle);
+}
+thead th {
+  background: var(--bg-subtle);
+  font-weight: 700;
+  color: var(--text);
+}
+tbody tr:last-child td {
+  border-bottom: none;
+}
+tbody tr:hover {
+  background: var(--bg-subtle);
+}
+
+/* ==========================================================================
+   Comparison / feature cards
+   ========================================================================== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sp-4);
+  margin: var(--sp-5) 0;
+}
+.card {
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+}
+.card h4 {
+  margin: 0 0 var(--sp-2);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Mermaid diagram wrapper
+   ========================================================================== */
+.diagram {
+  margin: var(--sp-5) 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+  text-align: center;
+  overflow-x: auto;
+}
+.diagram .mermaid {
+  direction: ltr;
+}
+.diagram figcaption {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Cheat sheet
+   ========================================================================== */
+.cheatsheet {
+  margin: var(--sp-5) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.cheatsheet table {
+  margin: 0;
+}
+.cheatsheet td:first-child {
+  width: 45%;
+  font-family: var(--font-mono);
+  direction: ltr;
+  color: var(--accent);
+}
+
+/* ==========================================================================
+   Summary box
+   ========================================================================== */
+.summary-box {
+  margin: var(--sp-6) 0;
+  padding: var(--sp-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    180deg,
+    var(--bg-subtle),
+    var(--bg-elevated)
+  );
+}
+.summary-box h2 {
+  margin-top: 0;
+  border: none;
+}
+
+/* ==========================================================================
+   Chapter navigation (prev / home / next)
+   ========================================================================== */
+.chapter-nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--sp-3);
+  margin: var(--sp-8) 0 0;
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border);
+}
+.chapter-nav a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
+}
+.chapter-nav a:hover {
+  border-color: var(--accent);
+  background: var(--bg-subtle);
+}
+.chapter-nav .nav-prev {
+  text-align: start;
+}
+.chapter-nav .nav-next {
+  text-align: end;
+}
+.chapter-nav .nav-home {
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+}
+.chapter-nav small {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+.chapter-nav strong {
+  color: var(--accent);
+}
+.chapter-nav a[aria-disabled="true"] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+@media (max-width: 560px) {
+  .chapter-nav {
+    grid-template-columns: 1fr;
+  }
+  .chapter-nav .nav-home {
+    order: -1;
+  }
+}

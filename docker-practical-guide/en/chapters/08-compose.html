@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 8: Docker Compose — describe a multi-container app in one compose.yaml file: services, networks, volumes, and env vars, and run it with a single command."
+    />
+    <title>Chapter 8: Docker Compose — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="8">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 8: Docker Compose</h1>
+            <p>
+              In the networking lab we wrote long <code>docker run</code> commands to
+              run the app and the database together. Imagine repeating that every
+              time, remembering the network, the volume, and the order. Tiring.
+            </p>
+            <p>
+              <strong>Docker Compose</strong> solves this. We describe the whole app in
+              one file called <code>compose.yaml</code>, and run it with one command.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--intermediate">Intermediate</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Explain what Docker Compose solves.</li>
+              <li>Write a <code>compose.yaml</code> with services, networks, and volumes.</li>
+              <li>Start and stop the whole app with one command.</li>
+              <li>Pass environment variables via Compose and a <code>.env</code> file.</li>
+              <li>Control start order with <code>depends_on</code>.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <ul>
+              <li>Finishing Chapter 6 (Volumes) and Chapter 7 (Networking).</li>
+              <li>Having an Image for your app (<code>my-app:1.0</code> from Chapter 5's lab).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>What is Docker Compose?</h2>
+            <p>
+              A tool that describes a multi-container app in a <code>compose.yaml</code>
+              file, then manages it with one command. Instead of several
+              <code>docker run</code> commands, everything is in one clear file you can
+              keep in Git.
+            </p>
+
+            <h2>The structure of <code>compose.yaml</code></h2>
+            <p>The file is split into simple sections:</p>
+            <ul>
+              <li><strong>services</strong>: each container service (like <code>app</code> and <code>db</code>).</li>
+              <li><strong>volumes</strong>: the persistent Named Volumes.</li>
+              <li><strong>networks</strong>: networks (optional — Compose creates one automatically).</li>
+            </ul>
+            <p>Inside each service we set <code>image</code> or <code>build</code>, ports, environment, volumes, and dependencies on other services.</p>
+
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> Automatic network and DNS by name</p>
+              <p>
+                Compose creates a user-defined network for your app automatically and
+                puts all the services on it. So each service reaches another
+                <strong>by name</strong> directly — <code>app</code> reaches the
+                database via <code>db</code>, exactly as we learned in the networking
+                chapter.
+              </p>
+            </div>
+
+            <h2>Environment variables and the <code>.env</code> file</h2>
+            <p>
+              We pass settings via <code>environment</code> inside the service. To keep
+              values out of the file, we put them in a <code>.env</code> file, and
+              Compose reads it automatically.
+            </p>
+
+            <h2>Start order: <code>depends_on</code></h2>
+            <p>
+              <code>depends_on</code> declares that a service starts before another
+              (e.g. the database before the app).
+            </p>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Started ≠ ready</p>
+              <p>
+                <code>depends_on</code> guarantees the database <em>started</em>, not
+                that it's <em>ready</em> to accept connections. The real "wait" solution
+                is a <strong>health check</strong> — we'll see it in the next chapter.
+              </p>
+            </div>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> The orchestra conductor</p>
+              <p>
+                Instead of each instrument (container) playing alone while you
+                coordinate them by hand, the conductor reads one score
+                (<code>compose.yaml</code>) so all the instruments start together and in
+                harmony at a single cue.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>One file runs the whole stack</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    F["compose.yaml"] --> UP["docker compose up -d"]
+    UP --> STACK
+    subgraph STACK["the stack on one network"]
+        APP["app"] -->|"db:5432"| DB["db"]
+        DB --> V[("volume: tasks-db")]
+    end
+    B["the browser"] -->|"localhost:8080"| APP
+              </pre>
+              <figcaption>Compose builds the network and the volume and runs the services together.</figcaption>
+            </figure>
+
+            <h3>Start order</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    DB["db starts first"] --> APP["then app starts"]
+              </pre>
+              <figcaption><code>depends_on</code> controls start order.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: a <code>compose.yaml</code> for an app and a database</h2>
+            <p>This is a complete file that runs our app with PostgreSQL on one network, with a persistent volume:</p>
+            <figure class="code-block" data-lang="yaml" data-title="compose.yaml">
+              <pre><code class="language-yaml">services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: tasks
+    volumes:
+      - tasks-db:/var/lib/postgresql/data
+
+  app:
+    image: my-app:1.0
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: db          # reach the database by its service name
+      DB_PORT: 5432
+      DB_NAME: tasks
+      DB_USER: postgres
+      DB_PASSWORD: secret
+    depends_on:
+      - db
+
+volumes:
+  tasks-db:</code></pre>
+            </figure>
+            <p>
+              Notice <code>DB_HOST: db</code> — the same reach-by-name idea from the
+              networking chapter, but without writing any network command by hand.
+            </p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on: the Compose lifecycle</h2>
+            <p><strong>Start the whole stack</strong> in the background:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose up -d</code></pre>
+            </figure>
+            <p><strong>Watch the state and logs:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose ps          # services and their state
+docker compose logs -f app # follow one service's logs</code></pre>
+            </figure>
+            <p><strong>Stop and remove everything</strong> (containers and network) with one command:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose down</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> The <code>.env</code> file</p>
+              <p>
+                Put changing values in a <code>.env</code> next to
+                <code>compose.yaml</code>, like <code>POSTGRES_PASSWORD=secret</code>,
+                and use them in the file with <code>${POSTGRES_PASSWORD}</code>. Compose
+                reads the file automatically.
+              </p>
+            </div>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> <code>down</code> doesn't remove the volume</p>
+              <p>
+                <code>tasks-db</code> stays after <code>down</code>, so your data returns
+                on the next run. To remove volumes too: <code>docker compose down -v</code>.
+              </p>
+            </div>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 8: turn the long commands into Compose</p>
+              <p>
+                In Chapter 7's lab we ran the app and the database with two long
+                commands. Let's replace them with one file.
+              </p>
+              <ol>
+                <li>In the project folder, create <code>compose.yaml</code> as in the example above.</li>
+                <li>Start the stack: <code>docker compose up -d</code>.</li>
+                <li>Confirm both services: <code>docker compose ps</code>.</li>
+                <li>Open <code>http://localhost:8080</code> and try the app.</li>
+                <li>Stop the stack: <code>docker compose down</code>, then run <code>up -d</code> again and note the data persists (the volume).</li>
+              </ol>
+              <p>
+                <strong>Output:</strong> a stack running with one command. In the next
+                chapter we build it properly for a Spring Boot app with a health check.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Wrong YAML indentation</p>
+              <p>YAML is whitespace-sensitive. Use spaces, not tabs, and align the sections precisely.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Forgetting the database's volume</p>
+              <p>Without <code>volumes</code> on the database, its data is lost on <code>down</code>. Always mount a volume for database data.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Relying on <code>depends_on</code> for readiness</p>
+              <p>It controls start order only, not readiness. To wait for real readiness, use a health check (next chapter).</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Using the old <code>docker-compose</code></p>
+              <p>The modern command is <code>docker compose</code> (with a space). The hyphenated <code>docker-compose</code> is old.</p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🗂️ One service per concern</h4>
+                <p>Separate the app from the database from the cache — each its own service.</p>
+              </div>
+              <div class="card">
+                <h4>🔑 Settings in <code>.env</code></h4>
+                <p>Keep values and secrets out of <code>compose.yaml</code> and out of Git.</p>
+              </div>
+              <div class="card">
+                <h4>📌 Pin image versions</h4>
+                <p><code>postgres:16</code>, not <code>postgres:latest</code>.</p>
+              </div>
+              <div class="card">
+                <h4>💾 A volume for every persistent data</h4>
+                <p>Databases and uploaded files → a Named Volume.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Cheat sheet</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+                  <tbody>
+                    <tr><td>docker compose up -d</td><td>Start the stack in the background</td></tr>
+                    <tr><td>docker compose ps</td><td>List services and their state</td></tr>
+                    <tr><td>docker compose logs -f &lt;service&gt;</td><td>Follow a service's logs</td></tr>
+                    <tr><td>docker compose down</td><td>Stop and remove containers and network</td></tr>
+                    <tr><td>docker compose down -v</td><td>Remove volumes too</td></tr>
+                    <tr><td>docker compose build</td><td>Build the images defined with build</td></tr>
+                    <tr><td>docker compose exec &lt;service&gt; sh</td><td>Open a shell in a running service</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li>Compose describes a multi-container app in one file and runs it with one command.</li>
+                <li>It creates a network automatically, so services recognize each other by name.</li>
+                <li><code>depends_on</code> controls start order, not readiness.</li>
+                <li>Named Volumes survive <code>down</code> (except with <code>-v</code>).</li>
+              </ul>
+              <h3>Important commands</h3>
+              <ul>
+                <li><code>docker compose up -d</code> / <code>ps</code> / <code>logs</code></li>
+                <li><code>docker compose down</code> / <code>down -v</code></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li>Wrong YAML indentation.</li>
+                <li>Expecting <code>depends_on</code> to wait for readiness.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

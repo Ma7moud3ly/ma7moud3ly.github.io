@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 1: Docker Fundamentals — why Docker, the problems it solves, VMs vs containers, images, Docker's architecture, and the container lifecycle."
+    />
+    <title>Chapter 1: Docker Fundamentals — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="1">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 1: Docker Fundamentals</h1>
+            <p>
+              Before you write your first <code>Dockerfile</code>, understand why
+              Docker exists and what problem it solves. In this chapter we learn
+              the difference between a container and a virtual machine, how an
+              Image relates to a container, and how Docker works under the hood.
+            </p>
+            <p>
+              We explain each idea generally first, then apply it to a real
+              example — a Spring Boot app — whenever seeing it run helps.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--beginner">Beginner</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Explain the "works on my machine" problem and how Docker solves it.</li>
+              <li>Tell a Virtual Machine (VM) apart from a Container.</li>
+              <li>Describe how an Image relates to a Container.</li>
+              <li>Name Docker's three parts: Client, Daemon, and Registry.</li>
+              <li>Trace the stages of the container lifecycle.</li>
+              <li>Connect these ideas to a real app (Spring Boot).</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <p>
+              This chapter is entirely theoretical. You don't need Docker
+              installed yet — we'll do that in the next chapter. The concepts are
+              general and apply to any app. Some examples use Java and Spring
+              Boot, so basic familiarity helps but isn't required.
+            </p>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Note</p>
+              <p>
+                The commands shown in "Example" and "Hands-on" are a
+                <strong>preview</strong> only — you'll run them yourself in
+                Chapter 2 after installing Docker.
+              </p>
+            </div>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>Why Docker? The "works on my machine" problem</h2>
+            <p>
+              Imagine you just finished building your app on your machine. It runs
+              great. You send it to a colleague or to the server, and it breaks
+              immediately. Why?
+            </p>
+            <p>Because no app runs in a vacuum — it depends on a whole environment around it:</p>
+            <ul>
+              <li>A specific runtime version and libraries.</li>
+              <li>Environment variables and settings.</li>
+              <li>External services such as a database of a certain version.</li>
+              <li>Ports and operating-system libraries.</li>
+            </ul>
+            <p>
+              Any small difference in this environment between your machine and
+              the server can break the app. That's the famous "works on my
+              machine" problem.
+            </p>
+            <p>
+              A concrete example: a Java app depends on a <strong>JRE</strong> for
+              Java 21 on your machine, while the server only has Java 17 — so it
+              fails to run.
+            </p>
+
+            <h2>What does Docker solve?</h2>
+            <p>
+              Docker's idea is simple. Instead of moving <em>the app alone</em>, we
+              package it <strong>with its entire environment</strong> into a single
+              unit called an <strong>Image</strong>.
+            </p>
+            <p>
+              This unit runs the same way on any machine that has Docker: yours,
+              your colleague's, or the server. The differences disappear, and so
+              does the problem.
+            </p>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> The core idea</p>
+              <p>
+                Docker doesn't make your app faster; it makes it run
+                <strong>the same everywhere</strong>. The real value is
+                consistency between development and production.
+              </p>
+            </div>
+
+            <h2>Virtual Machines</h2>
+            <p>
+              Before containers, isolation was usually done with a virtual
+              machine. A VM emulates a whole machine: each app gets its own guest
+              OS running on top of a layer called a <strong>Hypervisor</strong>.
+            </p>
+            <p>This gives strong isolation, but at a cost:</p>
+            <ul>
+              <li>Each VM carries a full OS — <strong>gigabytes</strong> in size.</li>
+              <li>Booting takes <strong>minutes</strong>.</li>
+              <li>High memory and CPU usage, because every guest OS runs in full.</li>
+            </ul>
+
+            <h2>Containers</h2>
+            <p>
+              A container solves the same isolation problem far more lightly.
+              Instead of emulating a whole machine, all containers share the
+              <strong>host operating system kernel</strong> and run as isolated
+              processes on top of it.
+            </p>
+            <p>The result:</p>
+            <ul>
+              <li>Size in <strong>megabytes</strong>, not gigabytes.</li>
+              <li>Boot in <strong>seconds or less</strong>.</li>
+              <li>Far lower usage — you can run dozens of containers on one machine.</li>
+            </ul>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> Very important</p>
+              <p>
+                A container is <strong>not a small virtual machine</strong> — it's
+                an isolated process. It has no full OS, only the app's files and
+                environment, and it borrows the kernel from the host.
+              </p>
+            </div>
+
+            <h3>Quick comparison: VM vs Container</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Criterion</th>
+                    <th>Virtual Machine</th>
+                    <th>Container</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Isolation</td><td>Full guest OS</td><td>Isolated process on the host kernel</td></tr>
+                  <tr><td>Size</td><td>Gigabytes (GB)</td><td>Megabytes (MB)</td></tr>
+                  <tr><td>Boot time</td><td>Minutes</td><td>Seconds</td></tr>
+                  <tr><td>Overhead</td><td>High</td><td>Low</td></tr>
+                  <tr><td>Density per machine</td><td>Limited</td><td>Dozens or more</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2>Images and Containers</h2>
+            <p>These two terms are the heart of Docker, and mixing them up is common. The difference is simple:</p>
+            <ul>
+              <li>
+                <strong>Image</strong>: a read-only template that contains your app
+                and everything it needs to run. It doesn't run by itself — it's
+                just a "blueprint."
+              </li>
+              <li>
+                <strong>Container</strong>: a <em>live, runnable</em> instance of
+                the Image. From a single Image you can run any number of containers.
+              </li>
+            </ul>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> In Java terms</p>
+              <p>
+                If you know Java, the analogy is direct: the
+                <strong>Image is like a Class</strong>, and the
+                <strong>Container is like an Object</strong> (an instance of the
+                class). Just as you create many objects from one class, you run
+                many containers from one Image.
+              </p>
+            </div>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <p>Docker is named after dock workers who ship containers, and the analogy is intentional:</p>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> The shipping container</p>
+              <p>
+                Before standard shipping containers, every kind of cargo was
+                shipped its own way — chaos. Then came the standardized container:
+                one fixed-size box that any crane can lift and any ship or truck
+                can carry, regardless of what's inside.
+              </p>
+              <p>
+                A Docker container does the same for software: it wraps your app in
+                a standard "box" that runs on any Docker-capable infrastructure,
+                without that infrastructure caring what's inside.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>Architecture: VM vs Container</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    subgraph VM["Virtual Machine model"]
+        direction TB
+        H1["Hardware"] --> HV["Hypervisor"]
+        HV --> G1["Guest OS + App A"]
+        HV --> G2["Guest OS + App B"]
+    end
+    subgraph CT["Container model"]
+        direction TB
+        H2["Hardware"] --> OS["Host OS + Kernel"]
+        OS --> DE["Docker Engine"]
+        DE --> C1["Container A"]
+        DE --> C2["Container B"]
+        DE --> C3["Container C"]
+    end
+              </pre>
+              <figcaption>
+                A VM duplicates the OS for every app, while containers share the
+                host kernel through the Docker Engine.
+              </figcaption>
+            </figure>
+
+            <h3>Docker architecture</h3>
+            <p>
+              Docker works as a <strong>client/server</strong> model. When you run
+              a command like <code>docker run</code>, you're using the
+              <strong>Client</strong>, which sends the request to the
+              <strong>Docker Daemon</strong> (the server) that builds images and
+              runs containers. Ready-made images come from a
+              <strong>Registry</strong> such as Docker Hub.
+            </p>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    U["You"] -->|"docker run / build / pull"| CLI["Docker Client (CLI)"]
+    CLI -->|"REST API"| D["Docker Daemon (dockerd)"]
+    D -->|"manages"| IMG["Images"]
+    D -->|"runs"| CON["Containers"]
+    D <-->|"pull / push"| REG["Registry — Docker Hub"]
+              </pre>
+              <figcaption>
+                The Client sends commands, the Daemon executes them, and the
+                Registry is the source and destination of images.
+              </figcaption>
+            </figure>
+
+            <h3>The container lifecycle</h3>
+            <p>A container moves through clear states, each transition driven by a single command:</p>
+            <figure class="diagram">
+              <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Created: docker create
+    Created --> Running: docker start
+    Running --> Paused: docker pause
+    Paused --> Running: docker unpause
+    Running --> Stopped: docker stop
+    Stopped --> Running: docker start
+    Stopped --> Removed: docker rm
+    Removed --> [*]
+              </pre>
+              <figcaption>
+                <code>docker run</code> takes a shortcut: it creates the container
+                and starts it in one step.
+              </figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: the problem, concretely</h2>
+            <p>
+              Let's make the "works on my machine" problem concrete. Your Spring
+              Boot app needs Java 21, but the server only has Java 17. On startup:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="On the server (Java 17)">
+              <pre><code class="language-bash">$ java -jar tasks-service.jar
+Error: LinkageError occurred while loading main class
+  UnsupportedClassVersionError: class file version 65.0,
+  this version only recognizes up to 61.0</code></pre>
+            </figure>
+            <p>
+              With Docker, we bundle the Java version <em>inside</em> the image
+              itself, so what's installed on the server no longer matters:
+            </p>
+            <figure class="code-block" data-lang="dockerfile" data-title="Dockerfile (preview — Chapter 5)">
+              <pre><code class="language-docker"># The image carries Java 21 with it, wherever it runs
+FROM eclipse-temurin:21-jre
+COPY tasks-service.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]</code></pre>
+            </figure>
+            <p>Now the container runs with Java 21 on any server, even one with no Java at all.</p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on (preview)</h2>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Preview only</p>
+              <p>
+                You won't run these commands yet — Docker isn't installed. The goal
+                is to see where we're heading. You'll run them yourself in
+                Chapter 2.
+              </p>
+            </div>
+            <p>
+              The classic first container to confirm Docker works is
+              <code>hello-world</code>:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run hello-world</code></pre>
+            </figure>
+            <p>What happens behind the scenes when you run this?</p>
+            <ol>
+              <li>The Client sends the request to the Daemon.</li>
+              <li>The Daemon can't find the image locally, so it pulls it from Docker Hub.</li>
+              <li>It creates a container from the image and runs it.</li>
+              <li>The container prints a welcome message and stops.</li>
+            </ol>
+            <figure class="code-block" data-lang="bash" data-title="Expected output">
+              <pre><code class="language-bash">Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+Hello from Docker!
+This message shows that your installation appears to be working correctly.</code></pre>
+            </figure>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <p>
+              Whenever this guide needs a real app, we'll reach for one recurring
+              example: the <strong>Tasks Service</strong> — a simple REST API built
+              with Spring Boot that stores tasks in PostgreSQL. Docker's concepts
+              stay general; we use this example only to see them applied to
+              something concrete.
+            </p>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 1: inventory your runtime environment</p>
+              <p>
+                No code yet. Your task is to identify what makes your app run,
+                because that's exactly what we'll package into the image later.
+              </p>
+              <p>For any app you have (or the Tasks Service), write down:</p>
+              <ol>
+                <li>The required Java (JRE) version.</li>
+                <li>The port the app listens on (usually <code>8080</code>).</li>
+                <li>Environment variables and settings (database URL, password, the active profile).</li>
+                <li>External services and their versions (PostgreSQL).</li>
+              </ol>
+              <p>
+                <strong>Output:</strong> this inventory is the "spec" of your future
+                image — it turns directly into <code>Dockerfile</code> instructions
+                in Chapter 5, and into services in <code>compose.yaml</code> in
+                Chapter 8.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Treating a container as a small VM</p>
+              <p>
+                A common mistake. A container is an isolated process that shares the
+                host kernel, not a full OS. That's why it's lighter and faster — and
+                also why it can't run a kernel entirely different from the host's.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Confusing Image and Container</p>
+              <p>
+                The Image is a static template; the Container is a live run of it.
+                Changing a container doesn't change the image it was built from.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Thinking Docker replaces the runtime</p>
+              <p>
+                Docker doesn't replace your app's runtime — it bundles it. A Java
+                app still needs a JRE, but now the JRE lives <em>inside</em> the
+                image at a version we know and control.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>📦 One process per container</h4>
+                <p>Make each container responsible for one thing: the Spring Boot service in one, the database in another.</p>
+              </div>
+              <div class="card">
+                <h4>🧊 The image is an immutable artifact</h4>
+                <p>Treat the image as an immutable artifact: built once, run unchanged across all environments.</p>
+              </div>
+              <div class="card">
+                <h4>♻️ Containers are disposable</h4>
+                <p>Treat a container as ephemeral: you can delete and recreate it at any moment without fear.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Glossary (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Term</th>
+                      <th>Short meaning</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Image</td><td>Read-only template holding the app and its environment</td></tr>
+                    <tr><td>Container</td><td>A live, runnable instance of an image</td></tr>
+                    <tr><td>Docker Client</td><td>The commands you type (docker ...)</td></tr>
+                    <tr><td>Docker Daemon</td><td>The server (dockerd) that builds and runs</td></tr>
+                    <tr><td>Registry</td><td>Image store (e.g. Docker Hub)</td></tr>
+                    <tr><td>Dockerfile</td><td>A text recipe for building an image</td></tr>
+                    <tr><td>Docker Engine</td><td>Client + Daemon together on the machine</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li>Docker solves "works on my machine" by packaging the app with its environment.</li>
+                <li>A container is an isolated process sharing the host kernel — lighter and faster than a VM.</li>
+                <li>The Image is a static template; the Container is a live run of it (Class vs Object).</li>
+                <li>Docker's architecture = Client + Daemon + Registry.</li>
+              </ul>
+              <h3>Terms to remember</h3>
+              <ul>
+                <li><strong>Image / Container / Registry</strong></li>
+                <li><strong>Docker Client / Docker Daemon</strong></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li>Treating a container as a small VM.</li>
+                <li>Confusing image and container.</li>
+                <li>Thinking Docker replaces the JVM.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

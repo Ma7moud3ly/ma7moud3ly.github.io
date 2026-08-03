@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 9: Spring Boot with PostgreSQL — containerize a Spring Boot app, connect it to the database via environment variables, and a compose.yaml with a persistent volume, a health check, and waiting for the database to be ready."
+    />
+    <title>Chapter 9: Spring Boot with PostgreSQL — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="9">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 9: Spring Boot with PostgreSQL</h1>
+            <p>
+              Now we bring everything we've learned together on a real app: a
+              <strong>Spring Boot</strong> service with a <strong>PostgreSQL</strong>
+              database, in containers, with persistent data and a proper wait for the
+              database to be ready.
+            </p>
+            <p>
+              Here you'll see why every earlier chapter mattered: an Image for the app,
+              a volume for the data, a network for communication by name, and Compose to
+              tie them together.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--advanced">Advanced</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Build an Image for a Spring Boot app.</li>
+              <li>Connect Spring Boot to PostgreSQL via environment variables.</li>
+              <li>Write a <code>compose.yaml</code> for the app and the database with a persistent volume.</li>
+              <li>Add a health check and wait for the database to be ready before the app starts.</li>
+              <li>Use a Spring profile specific to containers.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <ul>
+              <li>Finishing Chapter 5 (Dockerfile) and Chapter 8 (Compose).</li>
+              <li>A Spring Boot app that uses PostgreSQL (or this guide's Tasks Service).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>Containerizing a Spring Boot app</h2>
+            <p>
+              Spring Boot builds a single <code>jar</code> that contains everything (a
+              fat jar). Its container is therefore simple: a JRE image, copy the jar,
+              and run it. No fundamental difference from any Java app.
+            </p>
+
+            <h2>Connecting Spring to the database via the environment</h2>
+            <p>
+              We don't hard-code the database URL in the code. Spring Boot reads its
+              settings from environment variables, so we pass them to the container:
+            </p>
+            <ul>
+              <li><code>SPRING_DATASOURCE_URL</code> — the database's JDBC URL.</li>
+              <li><code>SPRING_DATASOURCE_USERNAME</code> — the username.</li>
+              <li><code>SPRING_DATASOURCE_PASSWORD</code> — the password.</li>
+            </ul>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> Reach by name</p>
+              <p>
+                In the database URL we use the service name as the hostname:
+                <code>jdbc:postgresql://db:5432/tasks</code>. The word <code>db</code> is
+                the database service's name in Compose, not <code>localhost</code>.
+              </p>
+            </div>
+
+            <h2>Health check and waiting for readiness</h2>
+            <p>
+              We saw that <code>depends_on</code> guarantees the database
+              <em>started</em>, not that it's <em>ready</em>. The solution is a
+              <strong>health check</strong> on the database, then making the app wait
+              until it becomes "healthy":
+            </p>
+            <ul>
+              <li>The database: a <code>pg_isready</code> check that repeats until it succeeds.</li>
+              <li>The app: <code>depends_on</code> with <code>condition: service_healthy</code>.</li>
+            </ul>
+            <p>
+              And for the Spring app itself, <strong>Actuator</strong> provides an
+              <code>/actuator/health</code> endpoint we use to check the app's health.
+            </p>
+
+            <h2>A Spring profile for containers</h2>
+            <p>
+              We activate a container-specific profile with
+              <code>SPRING_PROFILES_ACTIVE=docker</code>, so the settings in
+              <code>application-docker.properties</code> apply when running in the
+              container.
+            </p>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> Don't start before your partner is ready</p>
+              <p>
+                The app and the database are like two coworkers: there's no point in
+                the app starting and asking for data before the database opens its
+                doors. The health check is the "ready signal" the app waits for.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>The stack's architecture</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    B["the browser"] -->|"HTTP :8080"| APP["Spring Boot app"]
+    APP -->|"JDBC → db:5432"| DB["PostgreSQL"]
+    DB --> V[("volume: tasks-db")]
+              </pre>
+              <figcaption>The app talks to the database by name, and the data lives in a persistent volume.</figcaption>
+            </figure>
+
+            <h3>Startup with a health check</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    S["db starts"] --> H{"pg_isready?"}
+    H -->|"not yet"| H
+    H -->|"healthy"| A["app starts and connects"]
+              </pre>
+              <figcaption>The app waits until the database is genuinely ready.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: the Dockerfile and compose.yaml</h2>
+            <p><strong>1) Dockerfile</strong> for a Spring Boot app (with a jar ready in <code>target/</code>):</p>
+            <figure class="code-block" data-lang="dockerfile" data-title="Dockerfile">
+              <pre><code class="language-docker"># Runtime-only image is enough to run a Spring Boot fat jar
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY target/tasks-service.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]</code></pre>
+            </figure>
+
+            <p><strong>2) compose.yaml</strong> with the app and the database, a health check, and a volume:</p>
+            <figure class="code-block" data-lang="yaml" data-title="compose.yaml">
+              <pre><code class="language-yaml">services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: tasks
+    volumes:
+      - tasks-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tasks"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .                 # build the image from the local Dockerfile
+    image: tasks-service:1.0
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tasks
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: secret
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      db:
+        condition: service_healthy   # wait until the DB is actually ready
+
+volumes:
+  tasks-db:</code></pre>
+            </figure>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on: run the stack and verify</h2>
+            <p><strong>Build and run</strong> in one step:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose up -d --build</code></pre>
+            </figure>
+            <p><strong>Follow the app's logs</strong> until it connects to the database:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose logs -f app</code></pre>
+            </figure>
+            <p><strong>Check the app's health</strong> via Actuator:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">curl http://localhost:8080/actuator/health</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="json" data-title="Output">
+              <pre><code class="language-json">{"status":"UP"}</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Test persistence</p>
+              <p>
+                Create some data through the app, then <code>docker compose down</code>
+                and <code>up -d</code>. The data stays because it lives in the volume,
+                not the container.
+              </p>
+            </div>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 9: a complete Spring Boot stack</p>
+              <p>Goal: a Spring Boot app running with PostgreSQL, persistent data, and a proper wait.</p>
+              <ol>
+                <li>Build the app's jar.</li>
+                <li>Add a <code>Dockerfile</code> and <code>compose.yaml</code> as in the example.</li>
+                <li>Enable Actuator (the <code>spring-boot-starter-actuator</code> dependency) for the health endpoint.</li>
+                <li>Run: <code>docker compose up -d --build</code>.</li>
+                <li>Check <code>/actuator/health</code>, then try an endpoint that creates data.</li>
+                <li>Run <code>down</code> then <code>up -d</code> and confirm the data survived.</li>
+              </ol>
+              <p>
+                <strong>Output:</strong> a Spring Boot + PostgreSQL stack running with one
+                command — your app is now fully containerized. 🎉
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Using <code>localhost</code> in the database URL</p>
+              <p>Inside the container, <code>localhost</code> means the app itself. Use the service name: <code>jdbc:postgresql://db:5432/tasks</code>.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Starting the app before the database is ready</p>
+              <p><code>depends_on</code> alone isn't enough. Add a health check on the database with <code>condition: service_healthy</code>.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Forgetting the database volume</p>
+              <p>Without a volume, the database's data is lost on <code>down</code>. Mount <code>tasks-db</code> at its data directory.</p>
+            </div>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> Don't put secrets in the Image</p>
+              <p>Passwords are passed at run time via the environment or <code>.env</code>, never baked into the Image.</p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>⚙️ Config from the environment</h4>
+                <p>Pass the database URL and credentials via environment variables (the 12-factor principle).</p>
+              </div>
+              <div class="card">
+                <h4>❤️ Actuator for health</h4>
+                <p>Use <code>/actuator/health</code> to check the app's health inside Compose or an orchestrator.</p>
+              </div>
+              <div class="card">
+                <h4>⏳ Wait for readiness</h4>
+                <p>A health check + <code>service_healthy</code> instead of relying on start order alone.</p>
+              </div>
+              <div class="card">
+                <h4>🧬 A profile for the container</h4>
+                <p><code>SPRING_PROFILES_ACTIVE=docker</code> to separate container settings.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Cheat sheet</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Item</th><th>Usage</th></tr></thead>
+                  <tbody>
+                    <tr><td>SPRING_DATASOURCE_URL</td><td>jdbc:postgresql://db:5432/tasks</td></tr>
+                    <tr><td>SPRING_DATASOURCE_USERNAME / _PASSWORD</td><td>Database credentials</td></tr>
+                    <tr><td>SPRING_PROFILES_ACTIVE</td><td>Activate a profile (docker)</td></tr>
+                    <tr><td>healthcheck: pg_isready ...</td><td>Check the database is ready</td></tr>
+                    <tr><td>depends_on: condition: service_healthy</td><td>Wait for the database to be ready</td></tr>
+                    <tr><td>/actuator/health</td><td>Spring Boot app health</td></tr>
+                    <tr><td>docker compose up -d --build</td><td>Build and run the stack</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li>A Spring Boot container = a JRE image + copying the jar + running it.</li>
+                <li>Configure the database via <code>SPRING_DATASOURCE_*</code>, and connect by the name <code>db</code>.</li>
+                <li>A health check + <code>service_healthy</code> ensures the app starts after the database is ready.</li>
+                <li>A volume for the database persists the data, and Actuator checks health.</li>
+              </ul>
+              <h3>Important items</h3>
+              <ul>
+                <li><code>SPRING_DATASOURCE_URL</code> / <code>SPRING_PROFILES_ACTIVE</code></li>
+                <li><code>healthcheck</code> / <code>condition: service_healthy</code></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li><code>localhost</code> in the database URL.</li>
+                <li>Starting the app before the database is ready.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

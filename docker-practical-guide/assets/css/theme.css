@@ -1,0 +1,175 @@
+/* ==========================================================================
+   theme.css
+   Design tokens + light/dark themes.
+   Colors live here as CSS variables so every other stylesheet references them.
+   ========================================================================== */
+
+:root {
+  /* Brand */
+  --brand-docker: #2496ed;
+  --brand-spring: #6db33f;
+
+  /* Typography */
+  --font-sans: "Segoe UI", "Noto Sans Arabic", "Cairo", Tahoma, Arial, sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "SFMono-Regular",
+    Consolas, "Liberation Mono", Menlo, monospace;
+
+  --fs-base: 1rem;      /* 16px */
+  --fs-sm: 0.875rem;
+  --fs-xs: 0.78rem;
+  --lh-base: 1.85;      /* generous line-height helps Arabic readability */
+
+  /* Spacing scale */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-8: 3rem;
+
+  /* Radius / shadow */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+  /* Layout metrics */
+  --header-h: 60px;
+  --sidebar-w: 300px;
+  --toc-w: 240px;
+  --content-max: 860px;
+}
+
+/* -------- Light theme (default) -------- */
+:root,
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-subtle: #f6f8fa;
+  --bg-elevated: #ffffff;
+  --bg-code: #f6f8fa;
+  --bg-inline-code: #eef1f4;
+
+  --text: #1c2128;
+  --text-muted: #57606a;
+  --text-faint: #8b949e;
+
+  --border: #d8dee4;
+  --border-subtle: #eaeef2;
+
+  --accent: var(--brand-docker);
+  --accent-hover: #1b78c2;
+  --accent-soft: rgba(36, 150, 237, 0.1);
+
+  --link: #1b78c2;
+
+  /* Callout palette */
+  --note: #2496ed;
+  --note-bg: rgba(36, 150, 237, 0.08);
+  --tip: #2da44e;
+  --tip-bg: rgba(45, 164, 78, 0.09);
+  --warning: #e3820b;
+  --warning-bg: rgba(227, 130, 11, 0.1);
+  --important: #d1242f;
+  --important-bg: rgba(209, 36, 47, 0.08);
+  --exercise: #6e7781;
+  --exercise-bg: #f4f6f8;
+  --interview: #1c2128;
+  --interview-bg: #f4f6f8;
+
+  /* Syntax tokens (light) */
+  --tok-comment: #6a737d;
+  --tok-keyword: #cf222e;
+  --tok-string: #0a7d33;
+  --tok-number: #0550ae;
+  --tok-function: #8250df;
+  --tok-operator: #57606a;
+  --tok-punct: #57606a;
+  --tok-tag: #116329;
+  --tok-attr: #0550ae;
+
+  color-scheme: light;
+}
+
+/* -------- Dark theme -------- */
+:root[data-theme="dark"] {
+  --bg: #0d1117;
+  --bg-subtle: #161b22;
+  --bg-elevated: #161b22;
+  --bg-code: #161b22;
+  --bg-inline-code: #21262d;
+
+  --text: #e6edf3;
+  --text-muted: #9da7b3;
+  --text-faint: #6e7781;
+
+  --border: #30363d;
+  --border-subtle: #21262d;
+
+  --accent: #58a6ff;
+  --accent-hover: #79b8ff;
+  --accent-soft: rgba(88, 166, 255, 0.12);
+
+  --link: #58a6ff;
+
+  --note: #58a6ff;
+  --note-bg: rgba(88, 166, 255, 0.1);
+  --tip: #3fb950;
+  --tip-bg: rgba(63, 185, 80, 0.12);
+  --warning: #d29922;
+  --warning-bg: rgba(210, 153, 34, 0.12);
+  --important: #f85149;
+  --important-bg: rgba(248, 81, 73, 0.12);
+  --exercise: #8b949e;
+  --exercise-bg: #161b22;
+  --interview: #e6edf3;
+  --interview-bg: #161b22;
+
+  /* Syntax tokens (dark) */
+  --tok-comment: #8b949e;
+  --tok-keyword: #ff7b72;
+  --tok-string: #a5d6ff;
+  --tok-number: #79c0ff;
+  --tok-function: #d2a8ff;
+  --tok-operator: #9da7b3;
+  --tok-punct: #9da7b3;
+  --tok-tag: #7ee787;
+  --tok-attr: #79c0ff;
+
+  color-scheme: dark;
+}
+
+/* Follow OS preference when the user has not chosen explicitly */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #0d1117;
+    --bg-subtle: #161b22;
+    --bg-elevated: #161b22;
+    --bg-code: #161b22;
+    --bg-inline-code: #21262d;
+    --text: #e6edf3;
+    --text-muted: #9da7b3;
+    --text-faint: #6e7781;
+    --border: #30363d;
+    --border-subtle: #21262d;
+    --accent: #58a6ff;
+    --accent-hover: #79b8ff;
+    --accent-soft: rgba(88, 166, 255, 0.12);
+    --link: #58a6ff;
+    --note: #58a6ff;
+    --note-bg: rgba(88, 166, 255, 0.1);
+    --tip: #3fb950;
+    --tip-bg: rgba(63, 185, 80, 0.12);
+    --warning: #d29922;
+    --warning-bg: rgba(210, 153, 34, 0.12);
+    --important: #f85149;
+    --important-bg: rgba(248, 81, 73, 0.12);
+    --exercise: #8b949e;
+    --exercise-bg: #161b22;
+    --interview: #e6edf3;
+    --interview-bg: #161b22;
+    color-scheme: dark;
+  }
+}

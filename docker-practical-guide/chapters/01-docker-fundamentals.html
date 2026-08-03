@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل الأول: أساسيات Docker — لماذا Docker؟ المشكلات التي يحلّها، الفرق بين الأجهزة الافتراضية والحاويات، الـ Images، معمارية Docker، ودورة حياة الحاوية."
+    />
+    <title>الفصل 1: أساسيات Docker — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="1">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 1: أساسيات Docker</h1>
+            <p>
+              قبل أن تكتب أول <code>Dockerfile</code>، افهم أولًا لماذا يوجد
+              Docker وما المشكلة التي يحلّها. في هذا الفصل نتعرّف على الفرق بين
+              الحاوية والجهاز الافتراضي، وعلى علاقة الـ Image بالحاوية، وكيف يعمل
+              Docker من الداخل.
+            </p>
+            <p>
+              نشرح كل فكرة بشكل عام أولًا، ثم نطبّقها على مثال حقيقي — تطبيق
+              Spring Boot — كلما احتجنا أن نراها تعمل.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--beginner">مبتدئ</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تشرح مشكلة «يعمل على جهازي» ولماذا يحلّها Docker.</li>
+              <li>تفرّق بين الجهاز الافتراضي (VM) والحاوية (Container).</li>
+              <li>تصف العلاقة بين الـ Image والحاوية.</li>
+              <li>تعرف مكوّنات Docker الثلاثة: Client و Daemon و Registry.</li>
+              <li>تتابع مراحل دورة حياة الحاوية.</li>
+              <li>تربط هذه المفاهيم بتطبيق واقعي (Spring Boot).</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <p>
+              هذا الفصل نظري بالكامل. لا تحتاج إلى تثبيت Docker بعد؛ سنفعل ذلك في
+              الفصل التالي. المفاهيم عامة وتنطبق على أي تطبيق. بعض الأمثلة تستخدم
+              Java و Spring Boot، فمعرفتهما تفيد لكنها ليست شرطًا.
+            </p>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> ملاحظة</p>
+              <p>
+                الأوامر التي تظهر في قسمَي «مثال» و«عرض عملي» هي <strong>معاينة</strong>
+                فقط لتكوين تصوّر ذهني — ستنفّذها بنفسك في الفصل 2 بعد تثبيت Docker.
+              </p>
+            </div>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>لماذا Docker؟ مشكلة «يعمل على جهازي»</h2>
+            <p>
+              تخيّل أنك أنهيت تطوير تطبيقك على جهازك. يعمل بشكل ممتاز. ترسله إلى
+              زميلك أو إلى الخادم، فينهار فورًا. لماذا؟
+            </p>
+            <p>لأن أي تطبيق لا يعمل في فراغ، بل يعتمد على بيئة كاملة حوله:</p>
+            <ul>
+              <li>إصدار محدّد من بيئة التشغيل (runtime) والمكتبات.</li>
+              <li>متغيّرات بيئة (environment variables) وإعدادات.</li>
+              <li>خدمات خارجية مثل قاعدة بيانات بإصدار معيّن.</li>
+              <li>منافذ (ports) ومكتبات نظام تشغيل.</li>
+            </ul>
+            <p>
+              أي اختلاف بسيط في هذه البيئة بين جهازك والخادم قد يكسر التطبيق. هذه
+              هي مشكلة «works on my machine» الشهيرة.
+            </p>
+            <p>
+              مثال ملموس: تطبيق Java يعتمد على <strong>JRE</strong> بإصدار Java 21
+              على جهازك، بينما الخادم عليه Java 17 فقط — فيفشل التشغيل.
+            </p>
+
+            <h2>ما الذي يحلّه Docker؟</h2>
+            <p>
+              فكرة Docker بسيطة. بدل نقل <em>التطبيق وحده</em>، نحزمه
+              <strong>مع بيئته كاملة</strong> في وحدة واحدة اسمها
+              <strong>Image</strong>.
+            </p>
+            <p>
+              هذه الوحدة تعمل بنفس الطريقة على أي جهاز فيه Docker: جهازك، جهاز
+              زميلك، أو الخادم. تختفي الاختلافات، وتختفي معها المشكلة.
+            </p>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> الفكرة الجوهرية</p>
+              <p>
+                Docker لا يجعل تطبيقك أسرع، بل يجعله يعمل <strong>بنفس الطريقة في
+                كل مكان</strong>. القيمة هي التطابق (consistency) بين التطوير
+                والإنتاج.
+              </p>
+            </div>
+
+            <h2>الأجهزة الافتراضية (Virtual Machines)</h2>
+            <p>
+              قبل الحاويات، كان العزل يتم بالجهاز الافتراضي. الـ VM يحاكي جهازًا
+              كاملًا: لكل تطبيق نظام تشغيل ضيف (Guest OS) مستقل يعمل فوق طبقة اسمها
+              <strong>Hypervisor</strong>.
+            </p>
+            <p>هذا يوفّر عزلًا قويًا، لكن بثمن:</p>
+            <ul>
+              <li>كل VM يحمل نظام تشغيل كامل بحجم <strong>جيجابايتات</strong>.</li>
+              <li>الإقلاع يستغرق <strong>دقائق</strong>.</li>
+              <li>استهلاك عالٍ للذاكرة والمعالج لأن كل نظام ضيف يعمل بالكامل.</li>
+            </ul>
+
+            <h2>الحاويات (Containers)</h2>
+            <p>
+              الحاوية تحلّ نفس المشكلة بطريقة أخف. بدل محاكاة جهاز كامل، تتشارك
+              كل الحاويات <strong>نواة نظام التشغيل المضيف</strong> (host kernel)،
+              وتعمل كعمليات (processes) معزولة فوقها.
+            </p>
+            <p>النتيجة:</p>
+            <ul>
+              <li>الحجم بـ <strong>ميجابايتات</strong> لا جيجابايتات.</li>
+              <li>الإقلاع خلال <strong>ثوانٍ أو أقل</strong>.</li>
+              <li>استهلاك أقل بكثير — يمكن تشغيل عشرات الحاويات على نفس الجهاز.</li>
+            </ul>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> مهم جدًّا</p>
+              <p>
+                الحاوية <strong>ليست جهازًا افتراضيًا صغيرًا</strong>، بل هي عملية
+                معزولة. لا تحتوي على نظام تشغيل كامل، بل على ملفات وبيئة التطبيق
+                فقط، وتستعير النواة من المضيف.
+              </p>
+            </div>
+
+            <h3>مقارنة سريعة: VM مقابل Container</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>المعيار</th>
+                    <th>Virtual Machine</th>
+                    <th>Container</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>العزل</td><td>نظام تشغيل ضيف كامل</td><td>عملية معزولة على نواة المضيف</td></tr>
+                  <tr><td>الحجم</td><td>جيجابايتات (GB)</td><td>ميجابايتات (MB)</td></tr>
+                  <tr><td>زمن الإقلاع</td><td>دقائق</td><td>ثوانٍ</td></tr>
+                  <tr><td>الاستهلاك</td><td>عالٍ</td><td>منخفض</td></tr>
+                  <tr><td>الكثافة على الجهاز</td><td>عدد محدود</td><td>عشرات أو أكثر</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2>الـ Images والحاويات (Images & Containers)</h2>
+            <p>
+              هذان المصطلحان هما جوهر Docker، والخلط بينهما شائع. الفرق بسيط:
+            </p>
+            <ul>
+              <li>
+                <strong>Image</strong>: قالب ثابت للقراءة فقط (read-only) يحتوي
+                على تطبيقك وكل ما يحتاجه ليعمل. لا يعمل بذاته — إنه مجرد «مخطّط».
+              </li>
+              <li>
+                <strong>Container</strong>: نسخة <em>حيّة قابلة للتشغيل</em> من
+                الـ Image. من الـ Image الواحدة يمكنك تشغيل عدد لا محدود من الحاويات.
+              </li>
+            </ul>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> بلغة Java</p>
+              <p>
+                إن كنت تعرف Java فالتشبيه مباشر: <strong>الـ Image كالـ Class</strong>،
+                <strong>والحاوية كالـ Object</strong> (نسخة من الكلاس). كما تنشئ عدة
+                كائنات من كلاس واحد، تنشئ عدة حاويات من Image واحدة.
+              </p>
+            </div>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <p>
+              سُمّي Docker على اسم عمّال الموانئ (dockers) الذين يشحنون الحاويات،
+              والتشبيه مقصود:
+            </p>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> حاوية الشحن</p>
+              <p>
+                قبل حاويات الشحن القياسية، كان كل نوع بضاعة يُشحن بطريقته الخاصة —
+                فوضى. جاءت الحاوية الموحّدة: صندوق واحد بمقاس ثابت يمكن أن ترفعه أي
+                رافعة وتنقله أي سفينة أو شاحنة، بغضّ النظر عمّا بداخله.
+              </p>
+              <p>
+                حاوية Docker تفعل الشيء نفسه بالبرمجيات: تغلّف تطبيقك في «صندوق»
+                موحّد يعمل على أي بنية تحتية تدعم Docker، دون أن تهتمّ هذه البنية
+                بما بداخله.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>البنية: VM مقابل Container</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    subgraph VM["نموذج الأجهزة الافتراضية"]
+        direction TB
+        H1["Hardware"] --> HV["Hypervisor"]
+        HV --> G1["Guest OS + App A"]
+        HV --> G2["Guest OS + App B"]
+    end
+    subgraph CT["نموذج الحاويات"]
+        direction TB
+        H2["Hardware"] --> OS["Host OS + Kernel"]
+        OS --> DE["Docker Engine"]
+        DE --> C1["Container A"]
+        DE --> C2["Container B"]
+        DE --> C3["Container C"]
+    end
+              </pre>
+              <figcaption>
+                الـ VM يكرّر نظام التشغيل لكل تطبيق، بينما تتشارك الحاويات نواة
+                المضيف عبر Docker Engine.
+              </figcaption>
+            </figure>
+
+            <h3>معمارية Docker</h3>
+            <p>
+              يعمل Docker بنموذج <strong>Client / Server</strong>. عندما تكتب أمرًا
+              مثل <code>docker run</code>، فأنت تستخدم الـ <strong>Client</strong>
+              الذي يرسل الطلب إلى الـ <strong>Docker Daemon</strong> (الخادم)، وهو
+              من يبني الـ Images ويشغّل الحاويات. أما الـ Images الجاهزة فتأتي من
+              <strong>Registry</strong> مثل Docker Hub.
+            </p>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    U["أنت"] -->|"docker run / build / pull"| CLI["Docker Client (CLI)"]
+    CLI -->|"REST API"| D["Docker Daemon (dockerd)"]
+    D -->|"يدير"| IMG["Images"]
+    D -->|"يشغّل"| CON["Containers"]
+    D <-->|"pull / push"| REG["Registry — Docker Hub"]
+              </pre>
+              <figcaption>
+                الـ Client يرسل الأوامر، والـ Daemon ينفّذها، والـ Registry مصدر
+                الـ Images ووجهتها.
+              </figcaption>
+            </figure>
+
+            <h3>دورة حياة الحاوية</h3>
+            <p>تمرّ الحاوية بحالات واضحة يتحكّم بها أمر واحد في كل انتقال:</p>
+            <figure class="diagram">
+              <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Created: docker create
+    Created --> Running: docker start
+    Running --> Paused: docker pause
+    Paused --> Running: docker unpause
+    Running --> Stopped: docker stop
+    Stopped --> Running: docker start
+    Stopped --> Removed: docker rm
+    Removed --> [*]
+              </pre>
+              <figcaption>
+                الأمر <code>docker run</code> يختصر الطريق: ينشئ الحاوية ويشغّلها
+                في خطوة واحدة.
+              </figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: المشكلة بشكل ملموس</h2>
+            <p>
+              لنجعل مشكلة «يعمل على جهازي» ملموسة. تطبيق Spring Boot الخاص بك
+              يتطلّب Java 21، لكن الخادم عليه Java 17 فقط. عند التشغيل:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="على الخادم (Java 17)">
+              <pre><code class="language-bash">$ java -jar tasks-service.jar
+Error: LinkageError occurred while loading main class
+  UnsupportedClassVersionError: class file version 65.0,
+  this version only recognizes up to 61.0</code></pre>
+            </figure>
+            <p>
+              مع Docker، نثبّت إصدار Java <em>داخل</em> الـ Image نفسها، فلا يهمّ ما
+              المثبّت على الخادم:
+            </p>
+            <figure class="code-block" data-lang="dockerfile" data-title="Dockerfile (معاينة — الفصل 5)">
+              <pre><code class="language-docker"># The image carries Java 21 with it, wherever it runs
+FROM eclipse-temurin:21-jre
+COPY tasks-service.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]</code></pre>
+            </figure>
+            <p>
+              الآن تعمل الحاوية بـ Java 21 على أي خادم، حتى لو كان لا يحوي Java
+              إطلاقًا.
+            </p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي (معاينة)</h2>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> معاينة فقط</p>
+              <p>
+                لن تنفّذ هذه الأوامر الآن — Docker غير مثبّت بعد. الهدف أن ترى
+                الشكل النهائي الذي نتّجه إليه. ستشغّلها بنفسك في الفصل 2.
+              </p>
+            </div>
+            <p>
+              أشهر أمر تشغيل أول حاوية للتأكّد من أن Docker يعمل هو
+              <code>hello-world</code>:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run hello-world</code></pre>
+            </figure>
+            <p>ماذا يحدث خلف الكواليس عند تنفيذ هذا الأمر؟</p>
+            <ol>
+              <li>الـ Client يرسل الطلب إلى الـ Daemon.</li>
+              <li>الـ Daemon لا يجد الـ Image محليًّا، فيسحبها (<code>pull</code>) من Docker Hub.</li>
+              <li>ينشئ حاوية من الـ Image ويشغّلها.</li>
+              <li>تطبع الحاوية رسالة ترحيب ثم تتوقّف.</li>
+            </ol>
+            <figure class="code-block" data-lang="bash" data-title="المخرجات المتوقّعة">
+              <pre><code class="language-bash">Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+Hello from Docker!
+This message shows that your installation appears to be working correctly.</code></pre>
+            </figure>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <p>
+              كلما احتجنا إلى تطبيق حقيقي عبر الدليل، سنستعين بمثال متكرّر واحد:
+              <strong>خدمة المهام (Tasks Service)</strong> — واجهة REST بسيطة
+              بـ Spring Boot تحفظ المهام في قاعدة PostgreSQL. تبقى مفاهيم Docker
+              عامة، ونستخدم هذا المثال فقط لرؤيتها مطبَّقة على شيء ملموس.
+            </p>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 1: جرد بيئة التشغيل</p>
+              <p>
+                لن نكتب كودًا بعد. مهمتك أن تحدّد ما الذي يجعل تطبيقك يعمل، لأن هذا
+                بالضبط ما سنحزمه لاحقًا داخل الـ Image.
+              </p>
+              <p>لأي تطبيق لديك (أو خدمة المهام كمثال)، اكتب في ورقة:</p>
+              <ol>
+                <li>إصدار Java المطلوب (JRE).</li>
+                <li>المنفذ الذي يستمع عليه التطبيق (غالبًا <code>8080</code>).</li>
+                <li>متغيّرات البيئة والإعدادات (رابط قاعدة البيانات، كلمة المرور، الـ profile).</li>
+                <li>الخدمات الخارجية والـ dependencies (PostgreSQL وإصداره).</li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> قائمة الجرد هذه هي «مواصفات» الـ Image
+                المستقبلية الخاصة بك — ستتحوّل مباشرةً إلى تعليمات <code>Dockerfile</code> في
+                الفصل 5، وإلى خدمات في <code>compose.yaml</code> في الفصل 8.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> الحاوية جهاز افتراضي صغير</p>
+              <p>
+                خطأ شائع. الحاوية عملية معزولة تتشارك نواة المضيف، وليست نظام تشغيل
+                كامل. لذلك هي أخف وأسرع، ولذلك أيضًا لا تُشغّل نظامًا مختلفًا كليًّا
+                عن نواة المضيف.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> الخلط بين Image و Container</p>
+              <p>
+                الـ Image قالب ثابت، والحاوية تشغيل حيّ له. تعديل حاوية لا يغيّر الـ Image
+                التي بُنيت منها.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> ظنّ أن Docker يُلغي بيئة التشغيل (runtime)</p>
+              <p>
+                Docker لا يستبدل الـ runtime الخاص بتطبيقك، بل يحزمه معه. مثلًا
+                تطبيق Java ما زال يحتاج JRE — لكن الآن الـ JRE موجود <em>داخل</em>
+                الـ Image بإصدار نعرفه ونتحكّم به.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>📦 عملية واحدة لكل حاوية</h4>
+                <p>اجعل كل حاوية مسؤولة عن شيء واحد: خدمة Spring Boot في حاوية، وقاعدة البيانات في أخرى.</p>
+              </div>
+              <div class="card">
+                <h4>🧊 الـ Image قطعة أثرية ثابتة</h4>
+                <p>عامل الـ Image كـ artifact غير قابل للتغيير (immutable): تُبنى مرة، وتُشغَّل في كل البيئات كما هي.</p>
+              </div>
+              <div class="card">
+                <h4>♻️ الحاويات قابلة للاستبدال</h4>
+                <p>اعتبر الحاوية سريعة الزوال (ephemeral): يمكن حذفها وإعادة إنشائها في أي لحظة دون خوف.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة المصطلحات (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>المصطلح</th>
+                      <th>المعنى المختصر</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Image</td><td>قالب ثابت للقراءة فقط يحوي التطبيق وبيئته</td></tr>
+                    <tr><td>Container</td><td>نسخة حيّة قابلة للتشغيل من Image</td></tr>
+                    <tr><td>Docker Client</td><td>واجهة الأوامر التي تكتبها (docker ...)</td></tr>
+                    <tr><td>Docker Daemon</td><td>الخادم (dockerd) الذي يبني ويشغّل</td></tr>
+                    <tr><td>Registry</td><td>مخزن الـ Images (Docker Hub مثلًا)</td></tr>
+                    <tr><td>Dockerfile</td><td>وصفة نصية لبناء Image</td></tr>
+                    <tr><td>Docker Engine</td><td>Client + Daemon معًا على الجهاز</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li>Docker يحلّ مشكلة «يعمل على جهازي» بتحزيم التطبيق مع بيئته.</li>
+                <li>الحاوية عملية معزولة تتشارك نواة المضيف — أخف وأسرع من الـ VM.</li>
+                <li>الـ Image قالب ثابت، والحاوية تشغيل حيّ له (Class مقابل Object).</li>
+                <li>معمارية Docker = Client + Daemon + Registry.</li>
+              </ul>
+              <h3>مصطلحات تذكّرها</h3>
+              <ul>
+                <li><strong>Image / Container / Registry</strong></li>
+                <li><strong>Docker Client / Docker Daemon</strong></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li>اعتبار الحاوية جهازًا افتراضيًّا صغيرًا.</li>
+                <li>الخلط بين الـ Image والحاوية.</li>
+                <li>ظنّ أن Docker يُلغي الـ JVM.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
+      defer
+    ></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 7: Docker networking — the default bridge vs a user-defined bridge, containers finding each other by name via DNS, port mapping, and the host network."
+    />
+    <title>Chapter 7: Networking — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="7">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 7: Networking</h1>
+            <p>
+              A container rarely works alone. The app needs to talk to a database,
+              and the outside world needs to reach the app. This chapter explains
+              how containers communicate: with each other over the network, and with
+              the outside via port mapping.
+            </p>
+            <p>
+              The most important idea here — and the most often overlooked — is that
+              containers on a user-defined network find each other
+              <strong>by name</strong> automatically. That's what will connect our app
+              to its database later.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--intermediate">Intermediate</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Tell the default bridge from a user-defined bridge.</li>
+              <li>Make containers communicate by name via internal DNS.</li>
+              <li>Map a container port to the host with <code>-p</code>, and see the difference from <code>EXPOSE</code>.</li>
+              <li>Recognize the <code>host</code> network and when it's used.</li>
+              <li>Manage networks: create, connect, and inspect.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <ul>
+              <li>Finishing Chapter 4 (running containers) and Chapter 6 (Volumes).</li>
+              <li>Port mapping with <code>-p</code> (which we saw in Chapter 2).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>Network drivers</h2>
+            <p>Docker provides several network "drivers," three of them most important:</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>bridge</code></td><td>The default; a private isolated network on the host (most used)</td></tr>
+                  <tr><td><code>host</code></td><td>Shares the host's network stack directly, no isolation (Linux)</td></tr>
+                  <tr><td><code>none</code></td><td>No network at all (full isolation)</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2>The default network vs a user-defined one</h2>
+            <p>
+              Every container joins a default bridge network by default. But this
+              default network has an important limitation: its containers
+              <strong>don't recognize each other by name</strong> — only by IP
+              addresses, which are changeable and impractical.
+            </p>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> The golden rule</p>
+              <p>
+                Always create a <strong>user-defined bridge</strong> for your app.
+                Only there does <strong>internal DNS</strong> work, so each container
+                reaches another by its name as a hostname. This is what lets your app
+                reach the database via <code>db</code> instead of an IP address.
+              </p>
+            </div>
+
+            <h2>Port mapping</h2>
+            <p>
+              The network connects containers to each other, but to reach one from
+              <strong>outside</strong> Docker (like your browser) we need to
+              <strong>publish a port</strong> with <code>-p</code>:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="-p structure">
+              <pre><code class="language-bash"># -p &lt;host-port&gt;:&lt;container-port&gt;
+-p 8080:80    # host 8080  ->  container 80</code></pre>
+            </figure>
+            <p>
+              Remember the difference from the Dockerfile chapter:
+              <code>EXPOSE</code> is documentation only, while <code>-p</code> is what
+              actually publishes the port to the host.
+            </p>
+
+            <h2>host and none networks</h2>
+            <p>
+              The <code>host</code> network makes the container share the host's
+              network directly (no need for <code>-p</code>), but with no isolation,
+              and it works fully only on Linux. <code>none</code> isolates the
+              container from any network entirely.
+            </p>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> An internal phone system</p>
+              <p>
+                A user-defined network is like a company's <strong>internal phone
+                system</strong>: each employee (container) has a name and calls
+                colleagues by name through an internal directory (DNS). Port mapping
+                (<code>-p</code>) is like the <strong>receptionist</strong> who
+                forwards an outside call to a specific internal extension.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>Name-based communication on a user-defined network</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    subgraph NET["user-defined network: tasks-net"]
+        APP["app"] -->|"db:5432"| DB["db"]
+    end
+    BROWSER["the browser"] -->|"localhost:8080"| APP
+              </pre>
+              <figcaption>
+                Inside the network, <code>app</code> reaches <code>db</code> by name;
+                from outside, we reach <code>app</code> via a published port.
+              </figcaption>
+            </figure>
+
+            <h3>Port mapping between the host and the container</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    H["host : 8080"] -->|"-p 8080:80"| C["container : 80"]
+              </pre>
+              <figcaption>A request to the host port is forwarded to the container port.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: two containers talking by name</h2>
+            <p>We create a user-defined network, run two containers on it, and connect between them by name:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker network create appnet</code></pre>
+            </figure>
+            <p>A <code>web</code> server on the network:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name web --network appnet nginx</code></pre>
+            </figure>
+            <p>Another container on the same network reaches <code>web</code> by name:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm --network appnet curlimages/curl curl -s http://web</code></pre>
+            </figure>
+            <p>
+              The connection worked using the name <code>web</code> as a hostname —
+              because internal DNS works on a user-defined network.
+            </p>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Try the difference</p>
+              <p>
+                If you run the two containers without <code>--network appnet</code>
+                (on the default network), reaching <code>web</code> by name fails —
+                which is why we insist on a user-defined network.
+              </p>
+            </div>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on: publishing and managing networks</h2>
+            <p>Publish a port to reach it from the browser:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name web -p 8080:80 --network appnet nginx</code></pre>
+            </figure>
+            <p>Open <code>http://localhost:8080</code>. Network management commands:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker network ls                  # list networks
+docker network inspect appnet      # details + connected containers
+docker network connect appnet db   # attach a running container
+docker network rm appnet           # remove a network</code></pre>
+            </figure>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Don't use <code>localhost</code> between containers</p>
+              <p>
+                Inside a container, <code>localhost</code> means the container itself,
+                not the host or another container. To reach another container, use its
+                name on the shared network.
+              </p>
+            </div>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 7: connect the app to the database over the network</p>
+              <p>
+                Now we bring it all together: the app (Chapter 5) and the persistent
+                database (Chapter 6) communicate on a user-defined network, and the app
+                reaches the database by the name <code>db</code>.
+              </p>
+              <ol>
+                <li>Create the network: <code>docker network create tasks-net</code>.</li>
+                <li>
+                  Run the database on the network with the persistent volume:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker run -d --name db --network tasks-net -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=tasks -v tasks-db:/var/lib/postgresql/data postgres:16</code></pre>
+                  </figure>
+                </li>
+                <li>
+                  Run the app on the same network, pointing it at the database by the name <code>db</code>:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker run -d --name app --network tasks-net -p 8080:8080 -e DB_HOST=db -e DB_PORT=5432 -e DB_NAME=tasks -e DB_USER=postgres -e DB_PASSWORD=secret my-app:1.0</code></pre>
+                  </figure>
+                </li>
+                <li>Follow the app's logs and confirm it connected to the database: <code>docker logs -f app</code>.</li>
+                <li>Open <code>http://localhost:8080</code> and try the app.</li>
+              </ol>
+              <p>
+                <strong>Output:</strong> an app talking to its database by name over a
+                user-defined network. Notice how long the run command got — in the next
+                chapter, Docker Compose shrinks all of this into one file.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Expecting name resolution on the default network</p>
+              <p>Internal DNS only works on a user-defined network. Create one with <code>docker network create</code> and attach your containers to it.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Reversing the <code>-p</code> order</p>
+              <p>The syntax is <code>host:container</code>. Writing <code>-p 80:8080</code> instead of <code>-p 8080:80</code> forwards the request to the wrong port.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Forgetting to put containers on the same network</p>
+              <p>Two containers on different networks can't see each other. They must share the same network to communicate.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Publishing the database port needlessly</p>
+              <p>If only the app needs the database, there's no need to publish <code>5432</code> to the host; it's enough that the database is on the same network.</p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🔗 A user-defined network per app</h4>
+                <p>Group one app's containers on its own network to isolate them and enable DNS.</p>
+              </div>
+              <div class="card">
+                <h4>🏷️ Connect by name, not IP</h4>
+                <p>IP addresses change; container names are stable and clear.</p>
+              </div>
+              <div class="card">
+                <h4>🔒 Publish the fewest ports</h4>
+                <p>Publish only what the outside world needs, and keep the rest internal.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Cheat sheet</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+                  <tbody>
+                    <tr><td>docker network create &lt;name&gt;</td><td>Create a user-defined network</td></tr>
+                    <tr><td>docker network ls</td><td>List networks</td></tr>
+                    <tr><td>docker network inspect &lt;name&gt;</td><td>Network details and its containers</td></tr>
+                    <tr><td>docker run --network &lt;name&gt; ...</td><td>Run a container on a network</td></tr>
+                    <tr><td>docker network connect &lt;net&gt; &lt;container&gt;</td><td>Attach a running container to a network</td></tr>
+                    <tr><td>docker run -p 8080:80 ...</td><td>Publish a port to the host</td></tr>
+                    <tr><td>docker network rm &lt;name&gt;</td><td>Remove a network</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li>Create a user-defined bridge for any multi-container app.</li>
+                <li>On a user-defined network, containers recognize each other by name via internal DNS.</li>
+                <li><code>-p host:container</code> publishes the port to the outside; <code>EXPOSE</code> is documentation only.</li>
+                <li><code>localhost</code> inside a container means the container itself, not another container.</li>
+              </ul>
+              <h3>Important commands</h3>
+              <ul>
+                <li><code>docker network create / ls / inspect / connect</code></li>
+                <li><code>--network &lt;name&gt;</code> and <code>-p host:container</code></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li>Relying on the default network for name resolution.</li>
+                <li>Using <code>localhost</code> between containers.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

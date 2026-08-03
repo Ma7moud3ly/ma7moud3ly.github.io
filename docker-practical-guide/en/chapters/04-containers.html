@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 4: Containers — running them with key flags (-d, -it, -p, -e), managing their lifecycle, reading logs, inspecting, and getting a shell with exec."
+    />
+    <title>Chapter 4: Containers — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="4">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 4: Containers</h1>
+            <p>
+              We know a container is a running instance of an Image. Now we learn
+              how to create and control it for real: run, stop, restart, remove,
+              plus reading logs, inspecting details, and getting inside it.
+            </p>
+            <p>
+              These commands are your daily work with Docker, and the same
+              principles apply to any Image — from <code>nginx</code> to a database
+              to your own app.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--beginner">Beginner</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Run a container with the key flags: <code>-d</code>, <code>-it</code>, <code>-p</code>, <code>-e</code>, and <code>--name</code>.</li>
+              <li>Manage the lifecycle: <code>start</code>, <code>stop</code>, <code>restart</code>, and <code>rm</code>.</li>
+              <li>Read a container's logs and follow them live.</li>
+              <li>Inspect a container's details with <code>inspect</code>.</li>
+              <li>Get into a running container with <code>exec</code> to diagnose issues.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <ul>
+              <li>Finishing Chapters 2 and 3, with Docker working.</li>
+              <li>Knowing how to pull images (<code>docker pull</code>).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>Anatomy of <code>docker run</code></h2>
+            <p>
+              <code>docker run</code> creates a container from an image and starts
+              it in one step. Most of its power is in its flags (options):
+            </p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Flag</th>
+                    <th>Meaning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>-d</code></td><td>Run in the background (detached) without holding the terminal</td></tr>
+                  <tr><td><code>-p 8080:80</code></td><td>Map a host port to a container port (host:container)</td></tr>
+                  <tr><td><code>--name web</code></td><td>Give the container a name instead of a random ID</td></tr>
+                  <tr><td><code>-e KEY=value</code></td><td>Pass an environment variable to the container</td></tr>
+                  <tr><td><code>-it</code></td><td>An interactive session with a terminal (interactive + TTY)</td></tr>
+                  <tr><td><code>--rm</code></td><td>Automatically remove the container when it stops</td></tr>
+                  <tr><td><code>--restart</code></td><td>Restart policy on failure or boot</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2>A background service vs an interactive session</h2>
+            <p>There are two ways to run containers:</p>
+            <ul>
+              <li>
+                <strong>A background service</strong> (<code>-d</code>): like a web
+                server or a database — it runs continuously and returns your prompt
+                immediately.
+              </li>
+              <li>
+                <strong>An interactive session</strong> (<code>-it</code>): you drop
+                into a shell inside the container to try commands — it ends when you
+                exit.
+              </li>
+            </ul>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> A container lives as long as its main process</p>
+              <p>
+                A container isn't "a machine running in the background" — it wraps a
+                single process (PID 1). If that process ends, the container stops. So
+                a container with no long-running process stops the moment it starts.
+              </p>
+            </div>
+
+            <h2>Logs, inspect, and exec</h2>
+            <p>The three most important tools for understanding what's happening inside a container without stopping it:</p>
+            <ul>
+              <li><strong>Logs</strong>: <code>docker logs</code> shows what the process printed to standard output.</li>
+              <li><strong>Inspect</strong>: <code>docker inspect</code> gives every detail of the container (network, ports, settings) as JSON.</li>
+              <li><strong>Exec</strong>: <code>docker exec</code> runs a new command inside a running container — usually a shell for diagnosis.</li>
+            </ul>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> A machine with a control panel</p>
+              <p>
+                Picture the container as a running machine: a <strong>power</strong>
+                button (<code>start</code>/<code>stop</code>), a <strong>log</strong>
+                screen showing what it's doing (<code>logs</code>), a
+                <strong>spec</strong> sheet describing its state
+                (<code>inspect</code>), and a <strong>maintenance</strong> door you
+                step through to check the inside (<code>exec</code>) — all without
+                taking the machine apart.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>The practical lifecycle</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    RUN["docker run"] --> R(("Running"))
+    R --> LOG["docker logs -f"]
+    R --> EX["docker exec -it"]
+    R --> STOP["docker stop"]
+    STOP --> S(("Stopped"))
+    S --> START["docker start"]
+    START --> R
+    S --> RM["docker rm"]
+    RM --> X["removed"]
+              </pre>
+              <figcaption>
+                While running you observe the container (logs/exec), and move
+                between states with simple commands.
+              </figcaption>
+            </figure>
+
+            <h3>Background vs interactive</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    A["docker run -d nginx"] --> B["prompt returns immediately — the container runs in the background"]
+    C["docker run -it alpine sh"] --> D["you drop into a shell inside the container — exiting stops it"]
+              </pre>
+              <figcaption><code>-d</code> is for services, <code>-it</code> for interactive sessions.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: run a service and manage it</h2>
+            <p>We run the <code>nginx</code> server in the background with a clear name and a mapped port:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name web -p 8080:80 nginx</code></pre>
+            </figure>
+            <p>We confirm it's running, then read its logs and follow them live:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker ps                 # running containers
+docker logs web           # print logs once
+docker logs -f web        # follow logs live (Ctrl+C to stop)</code></pre>
+            </figure>
+            <p>We step inside the container with a shell to inspect its files:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker exec -it web sh
+# now inside the container:
+ls /usr/share/nginx/html
+exit</code></pre>
+            </figure>
+            <p>Finally we stop and remove it:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker stop web
+docker rm web</code></pre>
+            </figure>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on: useful run patterns</h2>
+            <p><strong>An interactive session</strong> to experiment inside a temporary container that removes itself:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm -it alpine sh
+# try some commands, then:
+exit
+# --rm removed the container automatically on exit</code></pre>
+            </figure>
+            <p><strong>Passing environment variables</strong> at run time:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm -e GREETING=hello alpine sh -c 'echo $GREETING'</code></pre>
+            </figure>
+            <p><strong>A restart policy</strong> for a service that should stay alive:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name web --restart unless-stopped -p 8080:80 nginx</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Quick inspect</p>
+              <p>
+                To read a container's port or network address without dumping
+                everything, use a template with <code>inspect</code>:
+              </p>
+            </div>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker inspect -f '{{.State.Status}}' web
+docker inspect -f '{{range $p,$_ := .NetworkSettings.Ports}}{{$p}} {{end}}' web</code></pre>
+            </figure>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 4: manage a database container</p>
+              <p>
+                We'll run PostgreSQL in a container — the same database our app will
+                rely on later — and practice managing it end to end.
+              </p>
+              <ol>
+                <li>
+                  Run it in the background with the required environment variables:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker run -d --name db -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=tasks -p 5432:5432 postgres:16</code></pre>
+                  </figure>
+                </li>
+                <li>Follow its logs until you see "database system is ready": <code>docker logs -f db</code>.</li>
+                <li>Get inside and open the psql client:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker exec -it db psql -U postgres -d tasks -c '\dt'</code></pre>
+                  </figure>
+                </li>
+                <li>Inspect its state and port with <code>docker inspect</code>.</li>
+                <li>Stop then start it again: <code>docker stop db</code> then <code>docker start db</code>.</li>
+                <li>Force-remove it: <code>docker rm -f db</code>.</li>
+              </ol>
+              <p>
+                <strong>Output:</strong> you've mastered managing a real service
+                container. But notice: after <code>rm</code>, the database's data is
+                gone! We fix that in the Volumes chapter.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Forgetting <code>-d</code>, so the terminal freezes</p>
+              <p>
+                Running a service without <code>-d</code> ties up the terminal with
+                the container's output. Add <code>-d</code> for services, and keep
+                <code>-it</code> for interactive use.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> "name is already in use"</p>
+              <p>
+                A container name must be unique. Remove the old one
+                (<code>docker rm</code>) or pick a different name.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> The container stops immediately</p>
+              <p>
+                Usually because its main process ended (no long-running service).
+                Check the reason with <code>docker logs &lt;name&gt;</code>.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Losing data after <code>rm</code></p>
+              <p>
+                Removing a container erases its writable layer and any data inside
+                it. For persistent data, use Volumes (Chapter 6).
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🏷️ Name your containers</h4>
+                <p><code>--name</code> makes commands clearer than random IDs.</p>
+              </div>
+              <div class="card">
+                <h4>🧹 <code>--rm</code> for experiments</h4>
+                <p>For throwaway containers, so stopped containers don't pile up on your machine.</p>
+              </div>
+              <div class="card">
+                <h4>🔎 Diagnose with logs and exec</h4>
+                <p>Before deleting a failing container, read its logs and step inside to understand why.</p>
+              </div>
+              <div class="card">
+                <h4>💾 Don't store data inside the container</h4>
+                <p>Treat it as ephemeral; put data in Volumes.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Cheat sheet</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+                  <tbody>
+                    <tr><td>docker run -d --name x -p 8080:80 img</td><td>Run a service in the background</td></tr>
+                    <tr><td>docker run --rm -it img sh</td><td>A temporary interactive session</td></tr>
+                    <tr><td>docker ps / docker ps -a</td><td>Running containers / all of them</td></tr>
+                    <tr><td>docker logs -f &lt;name&gt;</td><td>Follow logs live</td></tr>
+                    <tr><td>docker exec -it &lt;name&gt; sh</td><td>Open a shell in a running container</td></tr>
+                    <tr><td>docker inspect &lt;name&gt;</td><td>Container details (JSON)</td></tr>
+                    <tr><td>docker stop / start / restart &lt;name&gt;</td><td>Manage the lifecycle</td></tr>
+                    <tr><td>docker rm -f &lt;name&gt;</td><td>Remove a container (forcefully)</td></tr>
+                    <tr><td>docker container prune</td><td>Remove all stopped containers</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li><code>docker run</code> creates and starts; its power is in the flags (<code>-d</code>, <code>-p</code>, <code>-e</code>, <code>--name</code>).</li>
+                <li>A container lives as long as its main process is alive.</li>
+                <li>Observe without stopping: <code>logs</code>, <code>inspect</code>, and <code>exec</code>.</li>
+                <li>Removing a container erases its data — the fix is in the Volumes chapter.</li>
+              </ul>
+              <h3>Important commands</h3>
+              <ul>
+                <li><code>run</code> / <code>ps</code> / <code>logs</code> / <code>exec</code></li>
+                <li><code>stop</code> / <code>start</code> / <code>rm</code> / <code>prune</code></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li>Forgetting <code>-d</code> for services.</li>
+                <li>Assuming data survives <code>rm</code>.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

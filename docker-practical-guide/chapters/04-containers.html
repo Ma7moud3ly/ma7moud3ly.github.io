@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل الرابع: الحاويات — تشغيلها بأهم الأعلام (-d و -it و -p و -e)، وإدارة دورة حياتها، وقراءة السجلات، والفحص، والدخول إليها بـ exec."
+    />
+    <title>الفصل 4: الحاويات (Containers) — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="4">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 4: الحاويات (Containers)</h1>
+            <p>
+              عرفنا أن الحاوية نسخة عاملة من Image. الآن نتعلّم كيف نُنشئها ونتحكّم
+              بها: تشغيل، إيقاف، إعادة تشغيل، حذف، وقراءة السجلات، وفحص التفاصيل،
+              والدخول إليها.
+            </p>
+            <p>
+              هذه الأوامر عملك اليومي مع Docker. ونفس المبادئ تنطبق على أي Image —
+              من <code>nginx</code> إلى قاعدة بيانات إلى تطبيقك.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--beginner">مبتدئ</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تشغّل حاوية بأهم الأعلام: <code>-d</code> و <code>-it</code> و <code>-p</code> و <code>-e</code> و <code>--name</code>.</li>
+              <li>تدير دورة الحياة: <code>start</code> و <code>stop</code> و <code>restart</code> و <code>rm</code>.</li>
+              <li>تقرأ سجلات الحاوية وتتابعها لحظيًّا.</li>
+              <li>تفحص تفاصيل حاوية بـ <code>inspect</code>.</li>
+              <li>تدخل حاوية عاملة بـ <code>exec</code> لتشخيص المشكلات.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <ul>
+              <li>إنهاء الفصلين 2 و 3، مع Docker يعمل.</li>
+              <li>معرفة سحب الـ Images (<code>docker pull</code>).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>تشريح أمر <code>docker run</code></h2>
+            <p>
+              الأمر <code>docker run</code> ينشئ حاوية من Image ويشغّلها في خطوة
+              واحدة. معظم قوّته في أعلامه (options):
+            </p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>العلم</th>
+                    <th>المعنى</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>-d</code></td><td>تشغيل في الخلفية (detached) دون حجز الطرفية</td></tr>
+                  <tr><td><code>-p 8080:80</code></td><td>ربط منفذ المضيف بمنفذ الحاوية (host:container)</td></tr>
+                  <tr><td><code>--name web</code></td><td>إعطاء الحاوية اسمًا بدل المعرّف العشوائي</td></tr>
+                  <tr><td><code>-e KEY=value</code></td><td>تمرير متغيّر بيئة إلى الحاوية</td></tr>
+                  <tr><td><code>-it</code></td><td>جلسة تفاعلية مع طرفية (interactive + TTY)</td></tr>
+                  <tr><td><code>--rm</code></td><td>حذف الحاوية تلقائيًّا عند توقّفها</td></tr>
+                  <tr><td><code>--restart</code></td><td>سياسة إعادة التشغيل عند الفشل أو الإقلاع</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2>مقدّمة الخدمة مقابل الجلسة التفاعلية</h2>
+            <p>هناك نمطان لتشغيل الحاويات:</p>
+            <ul>
+              <li>
+                <strong>خدمة في الخلفية</strong> (<code>-d</code>): مثل خادم ويب أو
+                قاعدة بيانات — تعمل باستمرار وتعيد لك سطر الأوامر فورًا.
+              </li>
+              <li>
+                <strong>جلسة تفاعلية</strong> (<code>-it</code>): تدخل إلى shell
+                داخل الحاوية لتجرّب الأوامر — تنتهي بخروجك منها.
+              </li>
+            </ul>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> الحاوية تعيش ما دامت عمليتها الرئيسية حيّة</p>
+              <p>
+                الحاوية ليست «جهازًا يعمل في الخلفية»، بل تلتفّ حول عملية واحدة
+                (PID 1). إذا انتهت تلك العملية، توقّفت الحاوية. لذلك حاوية بلا عملية
+                طويلة الأمد تتوقّف فور تشغيلها.
+              </p>
+            </div>
+
+            <h2>السجلات والفحص والدخول</h2>
+            <p>
+              أهم ثلاث أدوات لفهم ما يجري داخل حاوية دون إيقافها:
+            </p>
+            <ul>
+              <li><strong>Logs</strong>: <code>docker logs</code> يعرض ما طبعته العملية على الخرج القياسي.</li>
+              <li><strong>Inspect</strong>: <code>docker inspect</code> يعطي كل تفاصيل الحاوية (شبكة، منافذ، إعدادات) بصيغة JSON.</li>
+              <li><strong>Exec</strong>: <code>docker exec</code> يشغّل أمرًا جديدًا داخل حاوية عاملة — غالبًا shell للتشخيص.</li>
+            </ul>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> جهاز يعمل بلوحة تحكّم</p>
+              <p>
+                تخيّل الحاوية جهازًا يعمل: زر <strong>تشغيل/إيقاف</strong>
+                (<code>start</code>/<code>stop</code>)، وشاشة <strong>سجلّات</strong>
+                تُظهر ما يفعله (<code>logs</code>)، ولوحة <strong>مواصفات</strong>
+                تصف حالته (<code>inspect</code>)، وباب <strong>صيانة</strong> تدخل
+                منه لتفحص الداخل (<code>exec</code>). كل ذلك دون تفكيك الجهاز.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>دورة الحياة العملية</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    RUN["docker run"] --> R(("Running"))
+    R --> LOG["docker logs -f"]
+    R --> EX["docker exec -it"]
+    R --> STOP["docker stop"]
+    STOP --> S(("Stopped"))
+    S --> START["docker start"]
+    START --> R
+    S --> RM["docker rm"]
+    RM --> X["removed"]
+              </pre>
+              <figcaption>
+                أثناء التشغيل تراقب الحاوية (logs/exec)، وتنتقل بين الحالات
+                بأوامر بسيطة.
+              </figcaption>
+            </figure>
+
+            <h3>خلفية مقابل تفاعلي</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    A["docker run -d nginx"] --> B["الطرفية تعود فورًا — الحاوية تعمل في الخلفية"]
+    C["docker run -it alpine sh"] --> D["تدخل shell داخل الحاوية — الخروج يوقفها"]
+              </pre>
+              <figcaption>العلم <code>-d</code> للخدمات، و<code>-it</code> للجلسات التفاعلية.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: تشغيل خدمة وإدارتها</h2>
+            <p>نشغّل خادم <code>nginx</code> في الخلفية باسم واضح ومنفذ مربوط:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name web -p 8080:80 nginx</code></pre>
+            </figure>
+            <p>نتأكّد أنها تعمل، ثم نقرأ سجلّاتها ونتابعها لحظيًّا:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker ps                 # running containers
+docker logs web           # print logs once
+docker logs -f web        # follow logs live (Ctrl+C to stop)</code></pre>
+            </figure>
+            <p>ندخل إلى داخل الحاوية بـ shell لتفقّد ملفاتها:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker exec -it web sh
+# now inside the container:
+ls /usr/share/nginx/html
+exit</code></pre>
+            </figure>
+            <p>وأخيرًا نوقفها ونحذفها:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker stop web
+docker rm web</code></pre>
+            </figure>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي: أنماط تشغيل مفيدة</h2>
+            <p><strong>جلسة تفاعلية</strong> للتجربة داخل حاوية مؤقّتة تُحذف تلقائيًّا:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm -it alpine sh
+# try some commands, then:
+exit
+# --rm removed the container automatically on exit</code></pre>
+            </figure>
+            <p><strong>تمرير متغيّرات بيئة</strong> عند التشغيل:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm -e GREETING=hello alpine sh -c 'echo $GREETING'</code></pre>
+            </figure>
+            <p><strong>سياسة إعادة تشغيل</strong> لخدمة يجب أن تبقى حيّة:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name web --restart unless-stopped -p 8080:80 nginx</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> فحص سريع</p>
+              <p>
+                لرؤية منفذ الحاوية أو عنوان شبكتها دون قراءة كل شيء، استخدم قالب
+                على <code>inspect</code>:
+              </p>
+            </div>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker inspect -f '{{.State.Status}}' web
+docker inspect -f '{{range $p,$_ := .NetworkSettings.Ports}}{{$p}} {{end}}' web</code></pre>
+            </figure>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 4: إدارة حاوية قاعدة بيانات</p>
+              <p>
+                سنشغّل قاعدة PostgreSQL في حاوية — نفس القاعدة التي سيعتمد عليها
+                تطبيقنا لاحقًا — ونتدرّب على إدارتها بالكامل.
+              </p>
+              <ol>
+                <li>
+                  شغّلها في الخلفية مع متغيّرات البيئة المطلوبة:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker run -d --name db \
+  -e POSTGRES_PASSWORD=secret \
+  -e POSTGRES_DB=tasks \
+  -p 5432:5432 postgres:16</code></pre>
+                  </figure>
+                </li>
+                <li>تابع سجلّاتها حتى ترى «database system is ready»: <code>docker logs -f db</code>.</li>
+                <li>ادخل إليها وافتح عميل psql:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker exec -it db psql -U postgres -d tasks -c '\dt'</code></pre>
+                  </figure>
+                </li>
+                <li>افحص حالتها ومنفذها بـ <code>docker inspect</code>.</li>
+                <li>أوقفها ثم أعد تشغيلها: <code>docker stop db</code> ثم <code>docker start db</code>.</li>
+                <li>احذفها بالقوة: <code>docker rm -f db</code>.</li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> أتقنت إدارة حاوية خدمة حقيقية. لكن
+                لاحظ: بعد <code>rm</code> اختفت بيانات القاعدة! نحلّ هذه المشكلة في
+                فصل التخزين (Volumes).
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> نسيان <code>-d</code> فتتجمّد الطرفية</p>
+              <p>
+                تشغيل خدمة دون <code>-d</code> يحجز الطرفية بمخرجات الحاوية. أضف
+                <code>-d</code> للخدمات، واترك التفاعلي لـ <code>-it</code>.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> «name is already in use»</p>
+              <p>
+                اسم الحاوية يجب أن يكون فريدًا. احذف القديمة (<code>docker rm</code>)
+                أو اختر اسمًا آخر.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> الحاوية تتوقّف فور تشغيلها</p>
+              <p>
+                غالبًا لأن عمليتها الرئيسية انتهت (لا خدمة طويلة الأمد). راجع السبب
+                بـ <code>docker logs &lt;name&gt;</code>.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> فقدان البيانات بعد <code>rm</code></p>
+              <p>
+                حذف الحاوية يمحو طبقة الكتابة الخاصة بها ومعها أي بيانات بداخلها.
+                للبيانات الدائمة استخدم Volumes (الفصل 6).
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🏷️ سمِّ حاوياتك</h4>
+                <p><code>--name</code> يجعل الأوامر أوضح من المعرّفات العشوائية.</p>
+              </div>
+              <div class="card">
+                <h4>🧹 <code>--rm</code> للتجارب</h4>
+                <p>للحاويات المؤقّتة كي لا تتراكم حاويات متوقّفة على جهازك.</p>
+              </div>
+              <div class="card">
+                <h4>🔎 شخّص بـ logs و exec</h4>
+                <p>قبل حذف حاوية فاشلة، اقرأ سجلّاتها وادخلها لفهم السبب.</p>
+              </div>
+              <div class="card">
+                <h4>💾 لا تخزّن بيانات داخل الحاوية</h4>
+                <p>عاملها كسريعة الزوال؛ ضع البيانات في Volumes.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة الأوامر (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>الأمر</th><th>الوظيفة</th></tr></thead>
+                  <tbody>
+                    <tr><td>docker run -d --name x -p 8080:80 img</td><td>تشغيل خدمة في الخلفية</td></tr>
+                    <tr><td>docker run --rm -it img sh</td><td>جلسة تفاعلية مؤقّتة</td></tr>
+                    <tr><td>docker ps / docker ps -a</td><td>الحاويات العاملة / كلّها</td></tr>
+                    <tr><td>docker logs -f &lt;name&gt;</td><td>متابعة السجلات لحظيًّا</td></tr>
+                    <tr><td>docker exec -it &lt;name&gt; sh</td><td>فتح shell داخل حاوية عاملة</td></tr>
+                    <tr><td>docker inspect &lt;name&gt;</td><td>تفاصيل الحاوية (JSON)</td></tr>
+                    <tr><td>docker stop / start / restart &lt;name&gt;</td><td>إدارة دورة الحياة</td></tr>
+                    <tr><td>docker rm -f &lt;name&gt;</td><td>حذف حاوية (بالقوة)</td></tr>
+                    <tr><td>docker container prune</td><td>حذف كل الحاويات المتوقّفة</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li><code>docker run</code> ينشئ ويشغّل؛ قوّته في أعلامه (<code>-d</code>, <code>-p</code>, <code>-e</code>, <code>--name</code>).</li>
+                <li>الحاوية تعيش ما دامت عمليتها الرئيسية حيّة.</li>
+                <li>راقب دون إيقاف: <code>logs</code> و<code>inspect</code> و<code>exec</code>.</li>
+                <li>حذف الحاوية يمحو بياناتها — الحل في فصل Volumes.</li>
+              </ul>
+              <h3>أوامر مهمة</h3>
+              <ul>
+                <li><code>run</code> / <code>ps</code> / <code>logs</code> / <code>exec</code></li>
+                <li><code>stop</code> / <code>start</code> / <code>rm</code> / <code>prune</code></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li>نسيان <code>-d</code> للخدمات.</li>
+                <li>افتراض بقاء البيانات بعد <code>rm</code>.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

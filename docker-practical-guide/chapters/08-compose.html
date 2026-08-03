@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل الثامن: Docker Compose — وصف تطبيق متعدّد الحاويات في ملف compose.yaml واحد: services و networks و volumes ومتغيّرات البيئة، وتشغيله بأمر واحد."
+    />
+    <title>الفصل 8: Docker Compose — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="8">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 8: Docker Compose</h1>
+            <p>
+              في معمل الشبكات كتبنا أوامر <code>docker run</code> طويلة لتشغيل
+              التطبيق والقاعدة معًا. تخيّل تكرار ذلك كل مرة، وتذكّر الشبكة والـ
+              volume والترتيب. مُتعب.
+            </p>
+            <p>
+              <strong>Docker Compose</strong> يحلّ هذا. نصف التطبيق كله في ملف
+              واحد اسمه <code>compose.yaml</code>، ونشغّله بأمر واحد.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--intermediate">متوسّط</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تشرح ما يحلّه Docker Compose.</li>
+              <li>تكتب ملف <code>compose.yaml</code> بخدمات وشبكات و volumes.</li>
+              <li>تشغّل التطبيق كله وتوقفه بأمر واحد.</li>
+              <li>تمرّر متغيّرات البيئة عبر Compose وملف <code>.env</code>.</li>
+              <li>تضبط ترتيب الإقلاع بـ <code>depends_on</code>.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <ul>
+              <li>إنهاء الفصل 6 (Volumes) والفصل 7 (Networking).</li>
+              <li>وجود Image لتطبيقك (<code>my-app:1.0</code> من معمل الفصل 5).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>ما هو Docker Compose؟</h2>
+            <p>
+              أداة تصف تطبيقًا متعدّد الحاويات في ملف <code>compose.yaml</code>،
+              ثم تديره بأمر واحد. بدل عدة أوامر <code>docker run</code>، كل شيء في
+              ملف واحد واضح وقابل للحفظ في Git.
+            </p>
+
+            <h2>بنية <code>compose.yaml</code></h2>
+            <p>الملف مقسّم إلى أقسام بسيطة:</p>
+            <ul>
+              <li><strong>services</strong>: كل خدمة حاوية (مثل <code>app</code> و<code>db</code>).</li>
+              <li><strong>volumes</strong>: الـ Named Volumes الدائمة.</li>
+              <li><strong>networks</strong>: الشبكات (اختياري — يُنشئ Compose واحدة تلقائيًّا).</li>
+            </ul>
+            <p>وداخل كل خدمة نحدّد <code>image</code> أو <code>build</code>، والمنافذ، والبيئة، والـ volumes، والاعتماد على خدمات أخرى.</p>
+
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> شبكة تلقائية و DNS بالاسم</p>
+              <p>
+                ينشئ Compose شبكة معرّفة لتطبيقك تلقائيًّا، ويضع كل الخدمات عليها.
+                لذلك تصل كل خدمة إلى الأخرى <strong>باسمها</strong> مباشرةً — يصل
+                <code>app</code> إلى القاعدة عبر <code>db</code>، تمامًا كما تعلّمنا
+                في فصل الشبكات.
+              </p>
+            </div>
+
+            <h2>متغيّرات البيئة وملف <code>.env</code></h2>
+            <p>
+              نمرّر الإعدادات عبر <code>environment</code> داخل الخدمة. ولإبقاء
+              القيم خارج الملف، نضعها في ملف <code>.env</code> ويقرأها Compose
+              تلقائيًّا.
+            </p>
+
+            <h2>ترتيب الإقلاع: <code>depends_on</code></h2>
+            <p>
+              يحدّد <code>depends_on</code> أن خدمة تبدأ قبل أخرى (مثل: القاعدة قبل
+              التطبيق).
+            </p>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> يبدأ ≠ جاهز</p>
+              <p>
+                <code>depends_on</code> يضمن أن القاعدة <em>بدأت</em>، لا أنها
+                <em>جاهزة</em> لقبول الاتصالات. حلّ الانتظار الحقيقي عبر
+                <strong>health check</strong> — نراه في الفصل التالي.
+              </p>
+            </div>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> قائد الأوركسترا</p>
+              <p>
+                بدل أن تعزف كل آلة (حاوية) وحدها وتنسّقها يدويًّا، يقرأ قائد
+                الأوركسترا نوتة واحدة (<code>compose.yaml</code>) فتبدأ كل الآلات
+                معًا ومتناغمة بإشارة واحدة.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>ملف واحد يشغّل الحزمة كلها</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    F["compose.yaml"] --> UP["docker compose up -d"]
+    UP --> STACK
+    subgraph STACK["الحزمة على شبكة واحدة"]
+        APP["app"] -->|"db:5432"| DB["db"]
+        DB --> V[("volume: tasks-db")]
+    end
+    B["المتصفّح"] -->|"localhost:8080"| APP
+              </pre>
+              <figcaption>Compose يبني الشبكة والـ volume ويشغّل الخدمات معًا.</figcaption>
+            </figure>
+
+            <h3>ترتيب الإقلاع</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    DB["db يبدأ أولًا"] --> APP["ثم يبدأ app"]
+              </pre>
+              <figcaption><code>depends_on</code> يضبط ترتيب البدء.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: <code>compose.yaml</code> لتطبيق وقاعدة</h2>
+            <p>هذا ملف كامل يشغّل تطبيقنا مع PostgreSQL على شبكة واحدة، مع volume دائم:</p>
+            <figure class="code-block" data-lang="yaml" data-title="compose.yaml">
+              <pre><code class="language-yaml">services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: tasks
+    volumes:
+      - tasks-db:/var/lib/postgresql/data
+
+  app:
+    image: my-app:1.0
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: db          # reach the database by its service name
+      DB_PORT: 5432
+      DB_NAME: tasks
+      DB_USER: postgres
+      DB_PASSWORD: secret
+    depends_on:
+      - db
+
+volumes:
+  tasks-db:</code></pre>
+            </figure>
+            <p>
+              لاحظ <code>DB_HOST: db</code> — نفس فكرة الوصول بالاسم من فصل
+              الشبكات، لكن دون كتابة أي أمر شبكة يدويًّا.
+            </p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي: دورة حياة Compose</h2>
+            <p><strong>شغّل الحزمة كلها</strong> في الخلفية:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose up -d</code></pre>
+            </figure>
+            <p><strong>راقب الحالة والسجلات:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose ps          # services and their state
+docker compose logs -f app # follow one service's logs</code></pre>
+            </figure>
+            <p><strong>أوقف واحذف كل شيء</strong> (الحاويات والشبكة) بأمر واحد:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker compose down</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> ملف <code>.env</code></p>
+              <p>
+                ضع القيم المتغيّرة في <code>.env</code> بجانب <code>compose.yaml</code>،
+                مثل <code>POSTGRES_PASSWORD=secret</code>، واستعملها في الملف بـ
+                <code>${POSTGRES_PASSWORD}</code>. يقرأ Compose الملف تلقائيًّا.
+              </p>
+            </div>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> <code>down</code> لا يحذف الـ volume</p>
+              <p>
+                يبقى <code>tasks-db</code> بعد <code>down</code>، فتعود بياناتك عند
+                التشغيل التالي. لحذف الـ volumes أيضًا: <code>docker compose down -v</code>.
+              </p>
+            </div>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 8: حوّل الأوامر الطويلة إلى Compose</p>
+              <p>
+                في معمل الفصل 7 شغّلنا التطبيق والقاعدة بأمرين طويلين. لنستبدلهما
+                بملف واحد.
+              </p>
+              <ol>
+                <li>في مجلد المشروع، أنشئ <code>compose.yaml</code> كما في المثال أعلاه.</li>
+                <li>شغّل الحزمة: <code>docker compose up -d</code>.</li>
+                <li>تأكّد من الخدمتين: <code>docker compose ps</code>.</li>
+                <li>افتح <code>http://localhost:8080</code> وجرّب التطبيق.</li>
+                <li>أوقف الحزمة: <code>docker compose down</code>، ثم أعد <code>up -d</code> ولاحظ بقاء البيانات (الـ volume).</li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> حزمة تعمل بأمر واحد. في الفصل التالي
+                نبنيها بشكل صحيح لتطبيق Spring Boot مع health check.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> مسافات YAML خاطئة</p>
+              <p>YAML حسّاس للمسافات (indentation). استخدم مسافات لا Tabs، وحاذِ الأقسام بدقّة.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> نسيان الـ volume للقاعدة</p>
+              <p>بلا <code>volumes</code> في القاعدة، تضيع بياناتها عند <code>down</code>. اربط دائمًا volume لبيانات القاعدة.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> الاعتماد على <code>depends_on</code> للجاهزية</p>
+              <p>يضبط ترتيب البدء فقط، لا الجاهزية. للانتظار الفعلي استخدم health check (الفصل التالي).</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> استخدام <code>docker-compose</code> القديم</p>
+              <p>الأمر الحديث هو <code>docker compose</code> (بمسافة). صيغة <code>docker-compose</code> بشرطة قديمة.</p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🗂️ خدمة لكل مسؤولية</h4>
+                <p>افصل التطبيق عن القاعدة عن الكاش، كل واحد خدمة مستقلّة.</p>
+              </div>
+              <div class="card">
+                <h4>🔑 الإعدادات في <code>.env</code></h4>
+                <p>أبقِ القيم والأسرار خارج <code>compose.yaml</code> ولا ترفعها إلى Git.</p>
+              </div>
+              <div class="card">
+                <h4>📌 ثبّت إصدارات الـ Images</h4>
+                <p><code>postgres:16</code> لا <code>postgres:latest</code>.</p>
+              </div>
+              <div class="card">
+                <h4>💾 volume لكل بيانات دائمة</h4>
+                <p>قواعد البيانات والملفات المرفوعة → Named Volume.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة الأوامر (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>الأمر</th><th>الوظيفة</th></tr></thead>
+                  <tbody>
+                    <tr><td>docker compose up -d</td><td>تشغيل الحزمة في الخلفية</td></tr>
+                    <tr><td>docker compose ps</td><td>عرض الخدمات وحالتها</td></tr>
+                    <tr><td>docker compose logs -f &lt;service&gt;</td><td>متابعة سجلات خدمة</td></tr>
+                    <tr><td>docker compose down</td><td>إيقاف وحذف الحاويات والشبكة</td></tr>
+                    <tr><td>docker compose down -v</td><td>حذف الـ volumes أيضًا</td></tr>
+                    <tr><td>docker compose build</td><td>بناء الـ Images المعرّفة بـ build</td></tr>
+                    <tr><td>docker compose exec &lt;service&gt; sh</td><td>فتح shell داخل خدمة عاملة</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li>Compose يصف تطبيقًا متعدّد الحاويات في ملف واحد ويشغّله بأمر واحد.</li>
+                <li>ينشئ شبكة تلقائيًّا، فتتعارف الخدمات بالاسم.</li>
+                <li><code>depends_on</code> يضبط ترتيب البدء لا الجاهزية.</li>
+                <li>الـ Named Volumes تبقى بعد <code>down</code> (إلا مع <code>-v</code>).</li>
+              </ul>
+              <h3>أوامر مهمة</h3>
+              <ul>
+                <li><code>docker compose up -d</code> / <code>ps</code> / <code>logs</code></li>
+                <li><code>docker compose down</code> / <code>down -v</code></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li>مسافات YAML خاطئة.</li>
+                <li>توقّع أن <code>depends_on</code> ينتظر الجاهزية.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

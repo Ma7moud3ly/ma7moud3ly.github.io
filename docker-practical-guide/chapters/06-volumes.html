@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل السادس: التخزين في Docker — لماذا تختفي بيانات الحاوية، الفرق بين Named Volumes و Bind Mounts، حفظ البيانات بثبات، وتطبيقها على بيانات PostgreSQL."
+    />
+    <title>الفصل 6: التخزين (Volumes) — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="6">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 6: التخزين (Volumes)</h1>
+            <p>
+              في فصل الحاويات لاحظنا مشكلة مؤرّقة: عند حذف الحاوية تختفي بياناتها.
+              هذا مقبول للتطبيق نفسه (فهو سريع الزوال)، لكنه كارثي لقاعدة بيانات.
+            </p>
+            <p>
+              الحل هو <strong>التخزين خارج الحاوية</strong>. في هذا الفصل نتعلّم
+              نوعَي التخزين في Docker — <strong>Named Volumes</strong> و
+              <strong>Bind Mounts</strong> — ومتى نستخدم كلًّا منهما.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--intermediate">متوسّط</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تشرح لماذا تكون بيانات الحاوية سريعة الزوال.</li>
+              <li>تفرّق بين Named Volume و Bind Mount ومتى تستخدم كلًّا منهما.</li>
+              <li>تحفظ بيانات بثبات عبر Named Volume يبقى بعد حذف الحاوية.</li>
+              <li>تربط مجلدًا من المضيف داخل الحاوية عبر Bind Mount.</li>
+              <li>تدير الـ Volumes: الإنشاء والعرض والفحص والحذف.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <ul>
+              <li>إنهاء الفصل 4 (تشغيل الحاويات وإدارتها).</li>
+              <li>فهم أن الحاوية تضيف طبقة كتابة تُحذف معها (الفصل 3).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>لماذا تختفي البيانات؟</h2>
+            <p>
+              كل حاوية تكتب تغييراتها في <strong>طبقة كتابة رقيقة</strong> خاصة بها
+              فوق طبقات الـ Image الثابتة. هذه الطبقة مرتبطة بعمر الحاوية: احذف
+              الحاوية، تختفِ الطبقة ومعها كل البيانات.
+            </p>
+            <p>
+              لذلك نحتاج تخزينًا <strong>مستقلًّا عن دورة حياة الحاوية</strong>.
+              يقدّم Docker نوعين رئيسيين:
+            </p>
+
+            <h3>Named Volumes — يديرها Docker</h3>
+            <p>
+              مساحة تخزين يديرها Docker في منطقة خاصة به على المضيف. تعطيها اسمًا،
+              وتربطها بأي حاوية، وتبقى موجودة حتى لو حُذفت الحاوية. هذا الخيار
+              <strong>الأنسب للبيانات الدائمة</strong> مثل قواعد البيانات.
+            </p>
+
+            <h3>Bind Mounts — تربط مسارًا من المضيف</h3>
+            <p>
+              تربط مجلدًا أو ملفًا من <strong>جهاز المضيف</strong> مباشرةً داخل
+              الحاوية. أي تعديل على أحد الجانبين يظهر على الآخر فورًا. لهذا هو
+              <strong>مثالي للتطوير</strong> (كود أو إعدادات حيّة).
+            </p>
+
+            <h3>مقارنة سريعة</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>المعيار</th><th>Named Volume</th><th>Bind Mount</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>من يديره</td><td>Docker</td><td>أنت (مسار على المضيف)</td></tr>
+                  <tr><td>الموقع</td><td>منطقة Docker الداخلية</td><td>أي مسار تحدّده</td></tr>
+                  <tr><td>الأنسب لـ</td><td>بيانات دائمة (قواعد البيانات)</td><td>التطوير (كود/إعدادات)</td></tr>
+                  <tr><td>قابل للنقل</td><td>نعم (مستقل عن مسارات المضيف)</td><td>مرتبط ببنية المضيف</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> نوع ثالث مختصر</p>
+              <p>
+                هناك أيضًا <code>tmpfs</code> الذي يخزّن في الذاكرة (RAM) فقط ويختفي
+                بتوقّف الحاوية — مفيد للبيانات المؤقّتة الحسّاسة، ونادر الاستخدام.
+              </p>
+            </div>
+
+            <h3>صيغتا الربط: <code>-v</code> و <code>--mount</code></h3>
+            <p>
+              للربط عند التشغيل صيغتان: <code>-v</code> المختصرة، و<code>--mount</code>
+              الأوضح والأكثر تفصيلًا. كلتاهما تؤدّيان الغرض:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="بنية -v">
+              <pre><code class="language-bash"># named volume:  &lt;volume-name&gt;:&lt;path-in-container&gt;
+-v tasks-db:/var/lib/postgresql/data
+
+# bind mount:    &lt;host-path&gt;:&lt;path-in-container&gt;
+-v /home/me/app:/app</code></pre>
+            </figure>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> قرص خارجي ومجلد مشترك</p>
+              <p>
+                الـ <strong>Named Volume</strong> كقرص تخزين خارجي يديره Docker:
+                تفصله عن حاوية وتوصله بأخرى، والبيانات تبقى بأمان بغضّ النظر عن مصير
+                الحاوية. أما الـ <strong>Bind Mount</strong> فكـ«مجلد مشترك» بين
+                جهازك والحاوية: ما تعدّله على جهازك تراه الحاوية فورًا.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>البيانات تنجو من حذف الحاوية</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    subgraph H["المضيف"]
+        V[("Named Volume: tasks-db")]
+    end
+    C1["الحاوية (تُحذف)"] -.->|"docker rm"| X["اختفت"]
+    C1 --> V
+    C2["حاوية جديدة"] --> V
+    V --> OK["البيانات لا تزال موجودة"]
+              </pre>
+              <figcaption>
+                الـ Volume مستقل عن الحاوية، فتبقى البيانات وتُعاد إليها حاوية
+                جديدة.
+              </figcaption>
+            </figure>
+
+            <h3>Named Volume مقابل Bind Mount</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    subgraph HOST["المضيف"]
+        DV["منطقة Docker الداخلية"]
+        HP["/home/me/app"]
+    end
+    subgraph CON["الحاوية"]
+        P1["/var/lib/postgresql/data"]
+        P2["/app"]
+    end
+    DV -->|"Named Volume"| P1
+    HP -->|"Bind Mount"| P2
+              </pre>
+              <figcaption>
+                الـ Named Volume يأتي من منطقة Docker، والـ Bind Mount من مسار
+                تختاره على المضيف.
+              </figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: البيانات تبقى بعد الحاوية</h2>
+            <p>ننشئ Named Volume، نكتب فيه من حاوية، ثم نقرأه من حاوية أخرى:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker volume create demo-data</code></pre>
+            </figure>
+            <p>حاوية أولى تكتب ملفًا داخل الـ Volume ثم تختفي (<code>--rm</code>):</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm -v demo-data:/data alpine sh -c "echo 'hello volumes' > /data/note.txt"</code></pre>
+            </figure>
+            <p>حاوية ثانية مختلفة تمامًا تقرأ نفس الملف:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm -v demo-data:/data alpine cat /data/note.txt</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="المخرجات">
+              <pre><code class="language-bash">hello volumes</code></pre>
+            </figure>
+            <p>
+              البيانات نجت رغم أن الحاويتين حُذفتا — لأنها في الـ Volume لا في
+              الحاوية.
+            </p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي: Bind Mount للتطوير وإدارة الـ Volumes</h2>
+            <p>
+              نربط مجلدًا من جهازنا داخل حاوية nginx لخدمة ملفاته مباشرةً (للقراءة
+              فقط <code>:ro</code>):
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name site -p 8080:80 -v "$(pwd)/site:/usr/share/nginx/html:ro" nginx</code></pre>
+            </figure>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> مسارات المضيف على Windows</p>
+              <p>
+                <code>$(pwd)</code> صيغة bash. في PowerShell استخدم
+                <code>${PWD}</code>، أو مرّر مسارًا مطلقًا. وتأكّد أن المجلد مسموح
+                بمشاركته في إعدادات Docker Desktop.
+              </p>
+            </div>
+            <p>أوامر إدارة الـ Volumes:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker volume ls                 # list volumes
+docker volume inspect demo-data  # details (including mount point)
+docker volume rm demo-data       # remove one volume
+docker volume prune              # remove all unused volumes</code></pre>
+            </figure>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 6: حفظ بيانات PostgreSQL بثبات</p>
+              <p>
+                في معمل الفصل 4 فقدنا بيانات القاعدة عند حذف الحاوية. لنصلح ذلك
+                الآن بربط Named Volume بمجلد بيانات PostgreSQL.
+              </p>
+              <ol>
+                <li>أنشئ Volume: <code>docker volume create tasks-db</code>.</li>
+                <li>
+                  شغّل القاعدة مع ربط الـ Volume بمجلد بياناتها:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker run -d --name db -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=tasks -v tasks-db:/var/lib/postgresql/data -p 5432:5432 postgres:16</code></pre>
+                  </figure>
+                </li>
+                <li>
+                  أنشئ جدولًا وأدخل صفًّا:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker exec -it db psql -U postgres -d tasks -c "CREATE TABLE t(id int); INSERT INTO t VALUES (1);"</code></pre>
+                  </figure>
+                </li>
+                <li>احذف الحاوية بالكامل: <code>docker rm -f db</code>.</li>
+                <li>أعد تشغيل القاعدة بنفس الأمر في الخطوة 2 (نفس الـ Volume).</li>
+                <li>
+                  تحقّق أن البيانات نجت:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker exec -it db psql -U postgres -d tasks -c "SELECT * FROM t;"</code></pre>
+                  </figure>
+                </li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> الصفّ <code>1</code> ما زال موجودًا رغم
+                حذف الحاوية. الآن قاعدتك دائمة. في الفصل التالي نجعل التطبيق والقاعدة
+                يتواصلان عبر الشبكة.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> توقّع بقاء البيانات دون Volume</p>
+              <p>بلا Volume، كل ما كتبته الحاوية يُحذف معها. اربط Volume لأي بيانات يجب أن تبقى.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Bind Mount لبيانات قاعدة البيانات</p>
+              <p>
+                على Windows/macOS قد يسبّب مشكلات أداء وصلاحيات. للبيانات الدائمة
+                فضّل Named Volume، واترك الـ Bind Mount للتطوير.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Volumes مجهولة تتراكم</p>
+              <p>
+                بعض الـ Images تنشئ Volumes مجهولة (anonymous) تلقائيًّا. نظّفها
+                دوريًّا بـ <code>docker volume prune</code>.
+              </p>
+            </div>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> حذف الحاوية ≠ حذف الـ Volume</p>
+              <p>
+                <code>docker rm</code> لا يحذف الـ Named Volume (وهذا مقصود لحماية
+                بياناتك). لحذفه صراحةً استخدم <code>docker volume rm</code>.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🗄️ Named Volume للبيانات الدائمة</h4>
+                <p>قواعد البيانات والملفات المرفوعة → Named Volume دائمًا.</p>
+              </div>
+              <div class="card">
+                <h4>💻 Bind Mount للتطوير</h4>
+                <p>لربط الكود أو ملفات الإعداد الحيّة أثناء التطوير المحلي.</p>
+              </div>
+              <div class="card">
+                <h4>🏷️ سمِّ الـ Volumes بوضوح</h4>
+                <p><code>tasks-db</code> أوضح من Volume مجهول عند الصيانة والنسخ الاحتياطي.</p>
+              </div>
+              <div class="card">
+                <h4>🔒 <code>:ro</code> عند القراءة فقط</h4>
+                <p>اربط بصلاحية قراءة فقط ما لا تحتاج الحاوية الكتابة فيه.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة الأوامر (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>الأمر</th><th>الوظيفة</th></tr></thead>
+                  <tbody>
+                    <tr><td>docker volume create &lt;name&gt;</td><td>إنشاء Named Volume</td></tr>
+                    <tr><td>docker volume ls</td><td>عرض الـ Volumes</td></tr>
+                    <tr><td>docker volume inspect &lt;name&gt;</td><td>تفاصيل Volume (وموقعه)</td></tr>
+                    <tr><td>docker volume rm &lt;name&gt;</td><td>حذف Volume</td></tr>
+                    <tr><td>docker volume prune</td><td>حذف الـ Volumes غير المستخدمة</td></tr>
+                    <tr><td>-v name:/path/in/container</td><td>ربط Named Volume</td></tr>
+                    <tr><td>-v /host/path:/path:ro</td><td>ربط Bind Mount (قراءة فقط)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li>بيانات الحاوية سريعة الزوال؛ التخزين الدائم يكون في Volume مستقل.</li>
+                <li>Named Volume (يديره Docker) للبيانات الدائمة؛ Bind Mount (مسار المضيف) للتطوير.</li>
+                <li>حذف الحاوية لا يحذف الـ Named Volume.</li>
+                <li>PostgreSQL يحفظ بياناته عبر ربط Volume بـ <code>/var/lib/postgresql/data</code>.</li>
+              </ul>
+              <h3>أوامر مهمة</h3>
+              <ul>
+                <li><code>docker volume create / ls / inspect / rm / prune</code></li>
+                <li><code>-v name:/path</code> و <code>-v /host:/path:ro</code></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li>توقّع بقاء البيانات دون Volume.</li>
+                <li>Bind Mount لبيانات قاعدة البيانات في الإنتاج.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

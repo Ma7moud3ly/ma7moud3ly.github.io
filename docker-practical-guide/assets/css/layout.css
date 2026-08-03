@@ -1,0 +1,417 @@
+/* ==========================================================================
+   layout.css
+   Page skeleton: header, sidebar, content, on-page TOC, footer + responsive.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-h) + var(--sp-4));
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Accessibility: skip link */
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--sp-4);
+  top: -60px;
+  z-index: 200;
+  background: var(--accent);
+  color: #fff;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-sm);
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: var(--sp-2);
+}
+
+/* -------- Header -------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-5);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-header__brand .logo {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.site-header__brand small {
+  display: block;
+  font-weight: 500;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.site-header__spacer {
+  flex: 1;
+}
+
+.header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  height: 38px;
+  min-width: 38px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-sm);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.header-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Hamburger only on small screens */
+.menu-toggle {
+  display: none;
+}
+
+/* -------- Layout grid -------- */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--toc-w);
+  align-items: start;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* -------- Sidebar (chapter list) -------- */
+.sidebar {
+  position: sticky;
+  top: var(--header-h);
+  align-self: start;
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  padding: var(--sp-5) var(--sp-4);
+  border-inline-end: 1px solid var(--border);
+  background: var(--bg);
+}
+.sidebar__title {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0 var(--sp-2) var(--sp-3);
+}
+.sidebar__nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: chap;
+}
+.sidebar__nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar__nav a .num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.sidebar__nav a:hover {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+.sidebar__nav a.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.sidebar__nav a.is-active .num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* -------- Main content -------- */
+.content {
+  min-width: 0;
+  padding: var(--sp-6) var(--sp-8);
+}
+.content__inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+/* -------- On-page TOC (right rail) -------- */
+.toc {
+  position: sticky;
+  top: var(--header-h);
+  align-self: start;
+  max-height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  padding: var(--sp-6) var(--sp-4);
+  font-size: var(--fs-sm);
+}
+.toc__title {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0 0 var(--sp-3);
+}
+.toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-inline-start: 2px solid var(--border-subtle);
+}
+.toc__list a {
+  display: block;
+  padding: var(--sp-1) var(--sp-3);
+  margin-inline-start: -2px;
+  border-inline-start: 2px solid transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  line-height: 1.5;
+  transition: color 0.15s, border-color 0.15s;
+}
+.toc__list a:hover {
+  color: var(--text);
+}
+.toc__list a.lvl-3 {
+  padding-inline-start: var(--sp-5);
+  font-size: var(--fs-xs);
+}
+.toc__list a.is-active {
+  color: var(--accent);
+  border-inline-start-color: var(--accent);
+  font-weight: 600;
+}
+
+/* -------- Footer -------- */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.site-footer__inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-8);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  justify-content: space-between;
+  align-items: center;
+}
+.site-footer a {
+  color: var(--link);
+  text-decoration: none;
+}
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+/* -------- Sidebar overlay (mobile) -------- */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+/* Hide right-rail TOC on narrower viewports */
+@media (max-width: 1180px) {
+  .layout {
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  }
+  .toc {
+    display: none;
+  }
+}
+
+/* Tablet / mobile: sidebar becomes an off-canvas drawer */
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .menu-toggle {
+    display: inline-flex;
+  }
+  .sidebar {
+    position: fixed;
+    top: var(--header-h);
+    /* Logical start = right in RTL, left in LTR. Pin the drawer there. */
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    z-index: 95;
+    height: calc(100vh - var(--header-h));
+    width: min(86vw, var(--sidebar-w));
+    /* Hidden off the start edge. Transforms aren't logical, so flip per dir. */
+    --drawer-hidden: -110%; /* LTR: hide off the left */
+    transform: translateX(var(--drawer-hidden));
+    transition: transform 0.25s ease;
+    box-shadow: var(--shadow-lg);
+  }
+  html[dir="rtl"] .sidebar {
+    --drawer-hidden: 110%; /* RTL: hide off the right */
+  }
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+  body.sidebar-open .sidebar-overlay {
+    display: block;
+  }
+  .content {
+    padding: var(--sp-5) var(--sp-4);
+  }
+}
+
+@media (max-width: 560px) {
+  .site-header {
+    padding: 0 var(--sp-3);
+    gap: var(--sp-2);
+  }
+  .site-header__brand small {
+    display: none;
+  }
+  .header-btn__label {
+    display: none;
+  }
+  .content {
+    padding: var(--sp-4) var(--sp-3);
+  }
+  .site-footer__inner {
+    padding: var(--sp-5) var(--sp-4);
+  }
+}
+
+/* ==========================================================================
+   Mobile overflow hardening
+   --------------------------------------------------------------------------
+   Keep off-canvas UI and long LTR technical strings from widening the page.
+   Code blocks, tables, and diagrams retain their own horizontal scroll.
+   ========================================================================== */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.site-header,
+.site-header__brand,
+.site-header__brand > span,
+.content__inner,
+.card,
+.chapter-nav a {
+  min-width: 0;
+}
+
+.site-header__brand > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
+.table-wrap,
+.diagram,
+.cheatsheet,
+.code-block {
+  max-width: 100%;
+}
+
+:not(pre) > code,
+.sidebar__nav a,
+.chapter-nav strong {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .site-header__brand {
+    flex: 1 1 auto;
+  }
+
+  .site-header__brand > span {
+    display: block;
+  }
+
+  .card-grid,
+  .highlights,
+  .chapter-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary-box,
+  .callout {
+    padding: var(--sp-4);
+  }
+}
+
+@media (max-width: 420px) {
+  .site-header a[href^="https://github.com"] {
+    display: none;
+  }
+}

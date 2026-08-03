@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 5: Dockerfile — learn to write an image build file step by step: FROM, WORKDIR, COPY, RUN, CMD, and ENTRYPOINT, by building an image for a simple Java app."
+    />
+    <title>Chapter 5: Dockerfile — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="5">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 5: Dockerfile</h1>
+            <p>So far we've run ready-made Images. Now we build our own Image.</p>
+            <p>
+              A Dockerfile is a text file with the steps to build the Image. Docker
+              runs these steps one after another, and each step makes a layer. We'll
+              apply this to a simple Java app.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--intermediate">Intermediate</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Understand the role of each Dockerfile instruction.</li>
+              <li>Build an Image with <code>docker build</code>.</li>
+              <li>Tell <code>CMD</code> from <code>ENTRYPOINT</code>, and <code>COPY</code> from <code>ADD</code>.</li>
+              <li>Order instructions to speed up builds (layer caching).</li>
+              <li>Shrink the build with a <code>.dockerignore</code> file.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <ul>
+              <li>Finishing Chapter 3 (Images and layers) and Chapter 4 (running containers).</li>
+              <li>A text editor to write the class and the Dockerfile — no need to install Java on your machine.</li>
+              <li>For the lab: a <code>jar</code> for an app that listens on a port (e.g. produced by <code>mvn package</code>).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>The core instructions</h2>
+            <p>These are the most-used instructions. Each does something simple and clear:</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Instruction</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td><code>FROM</code></td><td>Choose the base image</td></tr>
+                  <tr><td><code>WORKDIR</code></td><td>Set the working directory inside the Image</td></tr>
+                  <tr><td><code>COPY</code></td><td>Copy files from your machine into the Image</td></tr>
+                  <tr><td><code>ADD</code></td><td>Like COPY but with extra behavior (unpack, download a URL)</td></tr>
+                  <tr><td><code>RUN</code></td><td>Run a command at build time</td></tr>
+                  <tr><td><code>ENV</code></td><td>Define an environment variable</td></tr>
+                  <tr><td><code>EXPOSE</code></td><td>Document the port the app listens on</td></tr>
+                  <tr><td><code>CMD</code></td><td>The default command at run time (overridable)</td></tr>
+                  <tr><td><code>ENTRYPOINT</code></td><td>The fixed command that always runs</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>COPY or ADD?</h3>
+            <p>
+              Both copy files. The difference is that <code>ADD</code> does extra
+              things: it unpacks <code>tar</code> files and downloads from a URL.
+              That extra behavior causes surprises.
+            </p>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> The rule</p>
+              <p>Always use <code>COPY</code>. Only reach for <code>ADD</code> when you clearly need it.</p>
+            </div>
+
+            <h3>CMD or ENTRYPOINT?</h3>
+            <p>Both define what runs when the container starts, but there's a small difference:</p>
+            <ul>
+              <li><strong>ENTRYPOINT</strong>: the fixed program that always runs, like <code>java -jar app.jar</code>.</li>
+              <li><strong>CMD</strong>: default arguments the user can change at <code>docker run</code>.</li>
+            </ul>
+            <p>Always write them in bracket form (exec form). This form runs the program directly:</p>
+            <figure class="code-block" data-lang="dockerfile" data-title="exec form (preferred)">
+              <pre><code class="language-docker">ENTRYPOINT ["java", "-jar", "app.jar"]
+# exec form runs the program as PID 1, so stop signals reach it correctly</code></pre>
+            </figure>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> Avoid the shell form</p>
+              <p>
+                Writing <code>ENTRYPOINT java -jar app.jar</code> runs the program
+                through a shell. Then your program isn't PID 1, the stop signal
+                doesn't reach it properly, and stopping the container becomes slow.
+                Stick to bracket form.
+              </p>
+            </div>
+
+            <h3>Build context and the .dockerignore file</h3>
+            <p>
+              On <code>docker build</code>, Docker sends the whole folder's contents
+              to it (the build context). A <code>.dockerignore</code> file excludes
+              what you don't need (like <code>.git</code>), making the build faster
+              and the Image cleaner.
+            </p>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> A cooking recipe</p>
+              <p>
+                A Dockerfile is a recipe. <code>FROM</code> is the base ingredient,
+                <code>COPY</code> and <code>RUN</code> are the prep steps, and
+                <code>ENTRYPOINT</code> is how it's served. The same recipe yields
+                the same dish in any kitchen.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>From the recipe to the Image</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    DF["Dockerfile"] --> B["docker build"]
+    CTX["project files"] --> B
+    B --> L1["layer: FROM"]
+    L1 --> L2["layer: COPY jar"]
+    L2 --> IMG["Image"]
+              </pre>
+              <figcaption>Each instruction makes a layer, and the sum of the layers is the Image.</figcaption>
+            </figure>
+
+            <h3>Instruction order and caching</h3>
+            <p>
+              Docker caches the result of each layer. If an instruction hasn't
+              changed, it reuses the layer instead of rebuilding it. So order your
+              instructions: things that rarely change first, and code that changes
+              often last.
+            </p>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    A["FROM (rarely changes)"]:::cache --> B["dependencies (sometimes)"]:::cache --> C["app code (changes often)"]:::bust
+    classDef cache fill:#2da44e22,stroke:#2da44e;
+    classDef bust fill:#e3820b22,stroke:#e3820b;
+              </pre>
+              <figcaption>
+                Changing the code rebuilds only the last layer. Changing an early
+                instruction rebuilds everything after it.
+              </figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: a container that prints "Hello, World"</h2>
+            <p>
+              Let's build the simplest complete example: a single Java class that
+              prints a line, built with Java 17 inside a container. We need just two
+              files in one folder:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Project structure">
+              <pre><code class="language-bash">hello-docker/
+├── Main.java      # the Java class
+└── Dockerfile     # the build recipe</code></pre>
+            </figure>
+
+            <p><strong>1) The class.</strong> Create <code>Main.java</code>:</p>
+            <figure class="code-block" data-lang="java" data-title="Main.java">
+              <pre><code class="language-java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, World from Docker!");
+    }
+}</code></pre>
+            </figure>
+
+            <p><strong>2) The Dockerfile.</strong> Put it next to <code>Main.java</code> in the same folder:</p>
+            <figure class="code-block" data-lang="dockerfile" data-title="Dockerfile">
+              <pre><code class="language-docker"># Base image with the Java 17 JDK (includes the javac compiler)
+FROM eclipse-temurin:17-jdk
+
+# Working directory inside the image
+WORKDIR /app
+
+# Copy the source file into the image
+COPY Main.java .
+
+# Compile it with Java 17 at build time
+RUN javac Main.java
+
+# Run the compiled class when the container starts
+ENTRYPOINT ["java", "Main"]</code></pre>
+            </figure>
+            <p>
+              We chose a <code>jdk</code> image because we need the
+              <code>javac</code> compiler at build time. Compilation happens once
+              inside the Image, then <code>ENTRYPOINT</code> runs the class when the
+              container starts.
+            </p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on: build the container and run it</h2>
+            <p><strong>1) Enter the project folder and build the Image:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">cd hello-docker
+docker build -t hello-java:17 .</code></pre>
+            </figure>
+            <p>The dot at the end means "the build folder is the current directory."</p>
+            <p><strong>2) Run the container:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm hello-java:17</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="Output">
+              <pre><code class="language-bash">Hello, World from Docker!</code></pre>
+            </figure>
+            <p>The container printed the line and stopped. We added <code>--rm</code> so it's removed automatically once it finishes.</p>
+
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> What about <code>EXPOSE</code> and <code>-p</code>?</p>
+              <p>
+                This app prints a line and exits; it doesn't listen on any port, so
+                there's nothing to publish. That's why <code>EXPOSE</code> and
+                <code>-p</code> are meaningless here. We use them only with an app
+                that listens on a port (like a web server): add
+                <code>EXPOSE 8080</code> in the Dockerfile and run with
+                <code>-p 8080:8080</code> — which is exactly what we do in the lab.
+              </p>
+            </div>
+
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Try the caching</p>
+              <p>
+                Re-run <code>docker build</code> without changing anything — it
+                finishes instantly because the layers are cached. Change the message
+                in <code>Main.java</code> and rebuild, and only <code>javac</code>
+                runs again.
+              </p>
+            </div>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 5: build an image for an app that listens on a port</p>
+              <p>
+                Now apply the same idea to a real app that listens on a port — here
+                <code>EXPOSE</code> and <code>-p</code> become meaningful. We'll build
+                <code>my-app:1.0</code> and use it in the coming chapters.
+              </p>
+              <ol>
+                <li>Prepare a <code>jar</code> for an app that listens on port 8080 (e.g. <code>mvn package</code>).</li>
+                <li>
+                  Create a <code>Dockerfile</code> that uses a runtime-only base and exposes the port:
+                  <figure class="code-block" data-lang="dockerfile" data-title="Dockerfile">
+                    <pre><code class="language-docker">FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY target/app.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]</code></pre>
+                  </figure>
+                </li>
+                <li>Add a <code>.dockerignore</code> file (excludes <code>.git</code> and more).</li>
+                <li>Build the Image: <code>docker build -t my-app:1.0 .</code></li>
+                <li>Publish the port and run it: <code>docker run -d --name app -p 8080:8080 my-app:1.0</code>, then open <code>http://localhost:8080</code>.</li>
+                <li>Check its size with <code>docker images</code>, and its layers with <code>docker history my-app:1.0</code>.</li>
+              </ol>
+              <p>
+                <strong>Output:</strong> an Image named <code>my-app:1.0</code>, ready.
+                In the next chapter we persist its database's data.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> An order that breaks the cache</p>
+              <p>
+                Copying the code before the dependencies re-downloads them on every
+                small change. Put what rarely changes first.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Using <code>ADD</code> needlessly</p>
+              <p>Its extra behavior can surprise you. The default is always <code>COPY</code>.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Thinking <code>EXPOSE</code> publishes the port</p>
+              <p>
+                <code>EXPOSE</code> is documentation only. Publishing to the host is
+                done with <code>-p</code> at run time.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> A heavy base image</p>
+              <p>
+                Using <code>jdk</code> instead of <code>jre</code> at run time
+                bloats the Image for nothing. Use only the runtime you need.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🧱 Order for caching</h4>
+                <p>Rarely-changing things first, changing code last, so rebuilds are faster.</p>
+              </div>
+              <div class="card">
+                <h4>🚫 Always a <code>.dockerignore</code></h4>
+                <p>Excludes <code>.git</code> and unneeded files, shrinking the build and the Image.</p>
+              </div>
+              <div class="card">
+                <h4>📎 Bracket form</h4>
+                <p>Use <code>["...", "..."]</code> for correct signal handling and a clean stop.</p>
+              </div>
+              <div class="card">
+                <h4>📌 Pin the base tag</h4>
+                <p><code>eclipse-temurin:21-jre</code>, not <code>:latest</code>.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Cheat sheet</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Item</th><th>Usage</th></tr></thead>
+                  <tbody>
+                    <tr><td>FROM image:tag</td><td>Choose the base image</td></tr>
+                    <tr><td>WORKDIR /app</td><td>Set the working directory</td></tr>
+                    <tr><td>COPY src dest</td><td>Copy files into the Image</td></tr>
+                    <tr><td>RUN cmd</td><td>Run a command at build time</td></tr>
+                    <tr><td>ENV KEY=value</td><td>An environment variable</td></tr>
+                    <tr><td>EXPOSE 8080</td><td>Document the port</td></tr>
+                    <tr><td>ENTRYPOINT ["java","-jar","app.jar"]</td><td>The fixed command (exec form)</td></tr>
+                    <tr><td>docker build -t name:tag .</td><td>Build the Image from the current folder</td></tr>
+                    <tr><td>docker history name:tag</td><td>Show the resulting Image's layers</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li>A Dockerfile is a file of steps; each instruction makes a layer.</li>
+                <li>Use <code>COPY</code>, and <code>ENTRYPOINT</code> in bracket form.</li>
+                <li>Order instructions to benefit from caching, and exclude the extra with <code>.dockerignore</code>.</li>
+                <li><code>EXPOSE</code> is documentation only; publishing is done with <code>-p</code>.</li>
+              </ul>
+              <h3>Important items</h3>
+              <ul>
+                <li><code>FROM</code> / <code>WORKDIR</code> / <code>COPY</code> / <code>ENTRYPOINT</code></li>
+                <li><code>docker build -t name:tag .</code></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li>An order that breaks the cache.</li>
+                <li>Shell form in ENTRYPOINT, and a heavy base image.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل الخامس: Dockerfile — نتعلّم كتابة ملف بناء الـ Image خطوة بخطوة: FROM و WORKDIR و COPY و RUN و CMD و ENTRYPOINT، مع بناء Image لتطبيق Java بسيط."
+    />
+    <title>الفصل 5: Dockerfile — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="5">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 5: Dockerfile</h1>
+            <p>
+              حتى الآن شغّلنا Images جاهزة. الآن نصنع Image خاصة بنا.
+            </p>
+            <p>
+              الـ Dockerfile ملف نصّي فيه خطوات بناء الـ Image. ينفّذ Docker هذه
+              الخطوات واحدة تلو الأخرى، وكل خطوة تصنع طبقة. سنطبّق ذلك على تطبيق
+              Java بسيط.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--intermediate">متوسّط</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تفهم دور كل تعليمة في الـ Dockerfile.</li>
+              <li>تبني Image بأمر <code>docker build</code>.</li>
+              <li>تفرّق بين <code>CMD</code> و <code>ENTRYPOINT</code>، وبين <code>COPY</code> و <code>ADD</code>.</li>
+              <li>ترتّب التعليمات لتسريع البناء (layer caching).</li>
+              <li>تصغّر حجم البناء بملف <code>.dockerignore</code>.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <ul>
+              <li>إنهاء الفصل 3 (الـ Images والطبقات) والفصل 4 (تشغيل الحاويات).</li>
+              <li>محرّر نصوص لكتابة الكلاس والـ Dockerfile — لا حاجة إلى تثبيت Java على جهازك.</li>
+              <li>للمعمل: ملف <code>jar</code> لتطبيق يستمع على منفذ (مثلًا ناتج <code>mvn package</code>).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>التعليمات الأساسية</h2>
+            <p>هذه أكثر التعليمات استخدامًا. لكل واحدة عمل بسيط وواضح:</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>التعليمة</th><th>ماذا تفعل</th></tr></thead>
+                <tbody>
+                  <tr><td><code>FROM</code></td><td>تختار Image الأساس (base image)</td></tr>
+                  <tr><td><code>WORKDIR</code></td><td>تحدّد مجلد العمل داخل الـ Image</td></tr>
+                  <tr><td><code>COPY</code></td><td>تنسخ ملفات من جهازك إلى الـ Image</td></tr>
+                  <tr><td><code>ADD</code></td><td>مثل COPY لكن مع مزايا زائدة (فكّ ضغط، تنزيل رابط)</td></tr>
+                  <tr><td><code>RUN</code></td><td>تنفّذ أمرًا وقت البناء</td></tr>
+                  <tr><td><code>ENV</code></td><td>تعرّف متغيّر بيئة</td></tr>
+                  <tr><td><code>EXPOSE</code></td><td>توثّق المنفذ الذي يستمع عليه التطبيق</td></tr>
+                  <tr><td><code>CMD</code></td><td>الأمر الافتراضي عند التشغيل (يمكن تغييره)</td></tr>
+                  <tr><td><code>ENTRYPOINT</code></td><td>الأمر الثابت الذي يعمل دائمًا</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>COPY أم ADD؟</h3>
+            <p>
+              كلاهما ينسخ ملفات. الفرق أن <code>ADD</code> يفعل أشياء إضافية: يفكّ
+              ملفات <code>tar</code> وينزّل من رابط. هذه الزيادة تسبّب مفاجآت.
+            </p>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> القاعدة</p>
+              <p>استخدم <code>COPY</code> دائمًا. لا تستعمل <code>ADD</code> إلا عند حاجة واضحة.</p>
+            </div>
+
+            <h3>CMD أم ENTRYPOINT؟</h3>
+            <p>الاثنان يحدّدان ما يعمل عند تشغيل الحاوية، لكن بينهما فرق بسيط:</p>
+            <ul>
+              <li><strong>ENTRYPOINT</strong>: البرنامج الثابت الذي يعمل دائمًا، مثل <code>java -jar app.jar</code>.</li>
+              <li><strong>CMD</strong>: وسائط افتراضية يمكن للمستخدم تغييرها عند <code>docker run</code>.</li>
+            </ul>
+            <p>
+              اكتبهما دائمًا بصيغة الأقواس (exec form). هذه الصيغة تشغّل البرنامج
+              مباشرةً:
+            </p>
+            <figure class="code-block" data-lang="dockerfile" data-title="exec form (الأفضل)">
+              <pre><code class="language-docker">ENTRYPOINT ["java", "-jar", "app.jar"]
+# exec form runs the program as PID 1, so stop signals reach it correctly</code></pre>
+            </figure>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> تجنّب صيغة النصّ (shell form)</p>
+              <p>
+                كتابة <code>ENTRYPOINT java -jar app.jar</code> تشغّل البرنامج عبر
+                shell. عندها لا يكون برنامجك هو PID 1، ولا تصله إشارة الإيقاف بشكل
+                صحيح، فيبطؤ إيقاف الحاوية. الزم صيغة الأقواس.
+              </p>
+            </div>
+
+            <h3>سياق البناء وملف .dockerignore</h3>
+            <p>
+              عند <code>docker build</code> يرسل Docker محتوى المجلد كله إليه
+              (build context). ملف <code>.dockerignore</code> يستبعد ما لا نحتاجه
+              (مثل <code>.git</code>)، فيصبح البناء أسرع والـ Image أنظف.
+            </p>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> وصفة طبخ</p>
+              <p>
+                الـ Dockerfile وصفة. <code>FROM</code> المكوّن الأساس،
+                و<code>COPY</code> و<code>RUN</code> خطوات التحضير،
+                و<code>ENTRYPOINT</code> طريقة التقديم. نفس الوصفة تعطي نفس الطبق
+                في أي مطبخ.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>من الوصفة إلى الـ Image</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    DF["Dockerfile"] --> B["docker build"]
+    CTX["ملفات المشروع"] --> B
+    B --> L1["طبقة: FROM"]
+    L1 --> L2["طبقة: COPY jar"]
+    L2 --> IMG["Image"]
+              </pre>
+              <figcaption>كل تعليمة تصنع طبقة، ومجموع الطبقات هو الـ Image.</figcaption>
+            </figure>
+
+            <h3>ترتيب التعليمات و caching</h3>
+            <p>
+              يحفظ Docker نتيجة كل طبقة. إذا لم تتغيّر التعليمة، يعيد استخدام
+              الطبقة بدل بنائها من جديد. لذلك رتّب التعليمات: الأشياء التي نادرًا ما
+              تتغيّر أولًا، والكود الذي يتغيّر كثيرًا أخيرًا.
+            </p>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    A["FROM (نادر التغيّر)"]:::cache --> B["dependencies (أحيانًا)"]:::cache --> C["كود التطبيق (كثير التغيّر)"]:::bust
+    classDef cache fill:#2da44e22,stroke:#2da44e;
+    classDef bust fill:#e3820b22,stroke:#e3820b;
+              </pre>
+              <figcaption>
+                تغيير الكود يعيد بناء الطبقة الأخيرة فقط. تغيير تعليمة مبكّرة يعيد
+                بناء كل ما بعدها.
+              </figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: حاوية تطبع «Hello, World»</h2>
+            <p>
+              لنصنع أبسط مثال كامل: كلاس Java واحد يطبع جملة، نبنيه بـ Java 17
+              داخل حاوية. نحتاج ملفين فقط في مجلد واحد:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="بنية المشروع">
+              <pre><code class="language-bash">hello-docker/
+├── Main.java      # the Java class
+└── Dockerfile     # the build recipe</code></pre>
+            </figure>
+
+            <p><strong>1) الكلاس.</strong> أنشئ <code>Main.java</code>:</p>
+            <figure class="code-block" data-lang="java" data-title="Main.java">
+              <pre><code class="language-java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, World from Docker!");
+    }
+}</code></pre>
+            </figure>
+
+            <p>
+              <strong>2) الـ Dockerfile.</strong> ضعه بجانب <code>Main.java</code>
+              في نفس المجلد:
+            </p>
+            <figure class="code-block" data-lang="dockerfile" data-title="Dockerfile">
+              <pre><code class="language-docker"># Base image with the Java 17 JDK (includes the javac compiler)
+FROM eclipse-temurin:17-jdk
+
+# Working directory inside the image
+WORKDIR /app
+
+# Copy the source file into the image
+COPY Main.java .
+
+# Compile it with Java 17 at build time
+RUN javac Main.java
+
+# Run the compiled class when the container starts
+ENTRYPOINT ["java", "Main"]</code></pre>
+            </figure>
+            <p>
+              اخترنا Image فيها <code>jdk</code> لأننا نحتاج المترجم <code>javac</code>
+              وقت البناء. الترجمة تحدث مرة واحدة داخل الـ Image، ثم يشغّل
+              <code>ENTRYPOINT</code> الكلاس عند تشغيل الحاوية.
+            </p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي: نبني الحاوية ونشغّلها</h2>
+            <p><strong>1) ادخل مجلد المشروع وابنِ الـ Image:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">cd hello-docker
+docker build -t hello-java:17 .</code></pre>
+            </figure>
+            <p>النقطة في آخر الأمر تعني: «مجلد البناء هو المجلد الحالي».</p>
+            <p><strong>2) شغّل الحاوية:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm hello-java:17</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="المخرجات">
+              <pre><code class="language-bash">Hello, World from Docker!</code></pre>
+            </figure>
+            <p>
+              طبعت الحاوية الجملة ثم توقّفت. أضفنا <code>--rm</code> لتُحذف
+              تلقائيًّا بعد انتهائها.
+            </p>
+
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> ماذا عن <code>EXPOSE</code> و <code>-p</code>؟</p>
+              <p>
+                هذا التطبيق يطبع جملة ثم يخرج؛ لا يستمع على أي منفذ، فلا يوجد ما
+                ننشره. لذلك <code>EXPOSE</code> و<code>-p</code> بلا معنى هنا.
+                نستخدمهما فقط مع تطبيق يستمع على منفذ (مثل خادم ويب): نضيف
+                <code>EXPOSE 8080</code> في الـ Dockerfile ونشغّل بـ
+                <code>-p 8080:8080</code> — وهو ما نفعله في المعمل.
+              </p>
+            </div>
+
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> جرّب الـ caching</p>
+              <p>
+                أعد <code>docker build</code> دون تغيير شيء — سينتهي فورًا لأن
+                الطبقات جاهزة في الـ cache. غيّر رسالة <code>Main.java</code> وأعد
+                البناء، وسيُعاد تنفيذ <code>javac</code> وحده.
+              </p>
+            </div>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 5: ابنِ Image لتطبيق يستمع على منفذ</p>
+              <p>
+                الآن طبّق نفس الفكرة على تطبيق حقيقي يستمع على منفذ — هنا يظهر
+                معنى <code>EXPOSE</code> و<code>-p</code>. سنبني
+                <code>my-app:1.0</code> ونستخدمها في الفصول القادمة.
+              </p>
+              <ol>
+                <li>جهّز ملف <code>jar</code> لتطبيق يستمع على المنفذ 8080 (مثلًا <code>mvn package</code>).</li>
+                <li>
+                  أنشئ <code>Dockerfile</code> يعتمد على runtime فقط ويكشف المنفذ:
+                  <figure class="code-block" data-lang="dockerfile" data-title="Dockerfile">
+                    <pre><code class="language-docker">FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY target/app.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]</code></pre>
+                  </figure>
+                </li>
+                <li>أضف ملف <code>.dockerignore</code> (يستبعد <code>.git</code> وغيره).</li>
+                <li>ابنِ الـ Image: <code>docker build -t my-app:1.0 .</code></li>
+                <li>انشر المنفذ وشغّلها: <code>docker run -d --name app -p 8080:8080 my-app:1.0</code>، ثم افتح <code>http://localhost:8080</code>.</li>
+                <li>افحص حجمها بـ <code>docker images</code>، وطبقاتها بـ <code>docker history my-app:1.0</code>.</li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> Image باسم <code>my-app:1.0</code>
+                جاهزة. في الفصل التالي نحفظ بيانات قاعدتها بثبات.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> ترتيب يكسر الـ cache</p>
+              <p>
+                نسخ الكود قبل الـ dependencies يعيد تحميلها مع كل تعديل صغير. ضع ما
+                نادرًا يتغيّر أولًا.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> استخدام <code>ADD</code> بلا داعٍ</p>
+              <p>سلوكه الزائد قد يفاجئك. الافتراضي دائمًا <code>COPY</code>.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> ظنّ أن <code>EXPOSE</code> ينشر المنفذ</p>
+              <p>
+                <code>EXPOSE</code> توثيق فقط. النشر للمضيف يتم بـ <code>-p</code>
+                عند التشغيل.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Image أساس ثقيلة</p>
+              <p>
+                استخدام <code>jdk</code> بدل <code>jre</code> وقت التشغيل يكبّر الـ
+                Image بلا فائدة. اكتفِ بـ runtime المناسب.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🧱 رتّب للـ caching</h4>
+                <p>النادر التغيّر أولًا، والكود المتغيّر أخيرًا، فيصبح البناء أسرع.</p>
+              </div>
+              <div class="card">
+                <h4>🚫 <code>.dockerignore</code> دائمًا</h4>
+                <p>يستبعد <code>.git</code> وملفات غير لازمة، فيصغُر البناء والـ Image.</p>
+              </div>
+              <div class="card">
+                <h4>📎 صيغة الأقواس</h4>
+                <p>استخدم <code>["...", "..."]</code> لسلامة الإشارات وإيقاف نظيف.</p>
+              </div>
+              <div class="card">
+                <h4>📌 ثبّت وسم الأساس</h4>
+                <p><code>eclipse-temurin:21-jre</code> لا <code>:latest</code>.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة المرجع (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>العنصر</th><th>الاستخدام</th></tr></thead>
+                  <tbody>
+                    <tr><td>FROM image:tag</td><td>اختيار Image الأساس</td></tr>
+                    <tr><td>WORKDIR /app</td><td>ضبط مجلد العمل</td></tr>
+                    <tr><td>COPY src dest</td><td>نسخ ملفات إلى الـ Image</td></tr>
+                    <tr><td>RUN cmd</td><td>تنفيذ أمر وقت البناء</td></tr>
+                    <tr><td>ENV KEY=value</td><td>متغيّر بيئة</td></tr>
+                    <tr><td>EXPOSE 8080</td><td>توثيق المنفذ</td></tr>
+                    <tr><td>ENTRYPOINT ["java","-jar","app.jar"]</td><td>الأمر الثابت (exec form)</td></tr>
+                    <tr><td>docker build -t name:tag .</td><td>بناء الـ Image من المجلد الحالي</td></tr>
+                    <tr><td>docker history name:tag</td><td>عرض طبقات الـ Image</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li>الـ Dockerfile ملف خطوات؛ كل تعليمة تصنع طبقة.</li>
+                <li>استخدم <code>COPY</code>، و<code>ENTRYPOINT</code> بصيغة الأقواس.</li>
+                <li>رتّب التعليمات لتستفيد من الـ caching، واستبعد الزائد بـ <code>.dockerignore</code>.</li>
+                <li><code>EXPOSE</code> توثيق فقط؛ النشر بـ <code>-p</code>.</li>
+              </ul>
+              <h3>عناصر مهمة</h3>
+              <ul>
+                <li><code>FROM</code> / <code>WORKDIR</code> / <code>COPY</code> / <code>ENTRYPOINT</code></li>
+                <li><code>docker build -t name:tag .</code></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li>ترتيب يكسر الـ cache.</li>
+                <li>صيغة النصّ في ENTRYPOINT، و Image أساس ثقيلة.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>

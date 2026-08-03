@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 6: Storage in Docker — why container data disappears, named volumes vs bind mounts, persisting data, and applying it to PostgreSQL data."
+    />
+    <title>Chapter 6: Volumes — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="6">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 6: Volumes</h1>
+            <p>
+              In the Containers chapter we hit a troubling problem: when you remove
+              a container, its data disappears. That's fine for the app itself
+              (it's ephemeral), but disastrous for a database.
+            </p>
+            <p>
+              The solution is <strong>storage outside the container</strong>. In this
+              chapter we learn Docker's two storage types —
+              <strong>Named Volumes</strong> and <strong>Bind Mounts</strong> — and
+              when to use each.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--intermediate">Intermediate</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Explain why container data is ephemeral by default.</li>
+              <li>Tell a Named Volume from a Bind Mount and when to use each.</li>
+              <li>Persist data with a Named Volume that survives container removal.</li>
+              <li>Mount a host folder into a container via a Bind Mount.</li>
+              <li>Manage volumes: create, list, inspect, and remove.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <ul>
+              <li>Finishing Chapter 4 (running and managing containers).</li>
+              <li>Understanding that a container adds a writable layer that is removed with it (Chapter 3).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>Why does data disappear?</h2>
+            <p>
+              Every container writes its changes to its own <strong>thin writable
+              layer</strong> on top of the read-only image layers. That layer is
+              tied to the container's life: remove the container, and the layer —
+              and all its data — is gone.
+            </p>
+            <p>
+              So we need storage that is <strong>independent of the container's
+              lifecycle</strong>. Docker offers two main kinds:
+            </p>
+
+            <h3>Named Volumes — managed by Docker</h3>
+            <p>
+              A storage area Docker manages in its own region on the host. You give
+              it a name, attach it to any container, and it stays even if the
+              container is removed. This is the <strong>best fit for persistent
+              data</strong> such as databases.
+            </p>
+
+            <h3>Bind Mounts — mapping a host path</h3>
+            <p>
+              This maps a specific folder or file from the <strong>host
+              filesystem</strong> directly into the container. Any change on either
+              side is reflected on the other immediately, which makes it
+              <strong>ideal for development</strong> (live code or config).
+            </p>
+
+            <h3>Quick comparison</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Criterion</th><th>Named Volume</th><th>Bind Mount</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Managed by</td><td>Docker</td><td>You (a host path)</td></tr>
+                  <tr><td>Location</td><td>Docker's internal area</td><td>Any path you choose</td></tr>
+                  <tr><td>Best for</td><td>Persistent data (databases)</td><td>Development (code/config)</td></tr>
+                  <tr><td>Portable</td><td>Yes (independent of host paths)</td><td>Tied to the host's layout</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> A brief third type</p>
+              <p>
+                There's also <code>tmpfs</code>, which stores in memory (RAM) only
+                and vanishes when the container stops — useful for sensitive
+                temporary data, and rarely used.
+              </p>
+            </div>
+
+            <h3>Two mount syntaxes: <code>-v</code> and <code>--mount</code></h3>
+            <p>
+              There are two ways to mount at run time: the short <code>-v</code> and
+              the clearer, more explicit <code>--mount</code>. Both do the job:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="-v structure">
+              <pre><code class="language-bash"># named volume:  &lt;volume-name&gt;:&lt;path-in-container&gt;
+-v tasks-db:/var/lib/postgresql/data
+
+# bind mount:    &lt;host-path&gt;:&lt;path-in-container&gt;
+-v /home/me/app:/app</code></pre>
+            </figure>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> An external drive and a shared folder</p>
+              <p>
+                A <strong>Named Volume</strong> is like an external drive Docker
+                manages: you detach it from one container and attach it to another,
+                and the data stays safe no matter what happens to the container. A
+                <strong>Bind Mount</strong> is like a "shared folder" between your
+                machine and the container: what you edit on your machine, the
+                container sees instantly.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>Data survives container removal</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    subgraph H["The host"]
+        V[("Named Volume: tasks-db")]
+    end
+    C1["container (removed)"] -.->|"docker rm"| X["gone"]
+    C1 --> V
+    C2["new container"] --> V
+    V --> OK["the data is still there"]
+              </pre>
+              <figcaption>
+                The volume is independent of the container, so the data stays and a
+                new container reconnects to it.
+              </figcaption>
+            </figure>
+
+            <h3>Named Volume vs Bind Mount</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    subgraph HOST["The host"]
+        DV["Docker's internal area"]
+        HP["/home/me/app"]
+    end
+    subgraph CON["The container"]
+        P1["/var/lib/postgresql/data"]
+        P2["/app"]
+    end
+    DV -->|"Named Volume"| P1
+    HP -->|"Bind Mount"| P2
+              </pre>
+              <figcaption>
+                A Named Volume comes from Docker's area; a Bind Mount comes from a
+                path you pick on the host.
+              </figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: data outlives the container</h2>
+            <p>We create a Named Volume, write to it from one container, then read it from another:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker volume create demo-data</code></pre>
+            </figure>
+            <p>A first container writes a file into the volume and then vanishes (<code>--rm</code>):</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm -v demo-data:/data alpine sh -c "echo 'hello volumes' > /data/note.txt"</code></pre>
+            </figure>
+            <p>A second, entirely different container reads the same file:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm -v demo-data:/data alpine cat /data/note.txt</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="Output">
+              <pre><code class="language-bash">hello volumes</code></pre>
+            </figure>
+            <p>The data survived even though both containers were removed — because it lives in the volume, not the container.</p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on: a Bind Mount for development, and managing volumes</h2>
+            <p>We mount a folder from our machine into an nginx container to serve its files directly (read-only, <code>:ro</code>):</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name site -p 8080:80 -v "$(pwd)/site:/usr/share/nginx/html:ro" nginx</code></pre>
+            </figure>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Host paths on Windows</p>
+              <p>
+                <code>$(pwd)</code> is bash syntax. In PowerShell use
+                <code>${PWD}</code>, or pass an absolute path. Also make sure the
+                folder is allowed for sharing in Docker Desktop's settings.
+              </p>
+            </div>
+            <p>Volume management commands:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker volume ls                 # list volumes
+docker volume inspect demo-data  # details (including mount point)
+docker volume rm demo-data       # remove one volume
+docker volume prune              # remove all unused volumes</code></pre>
+            </figure>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 6: persist PostgreSQL data</p>
+              <p>
+                In Chapter 4's lab we lost the database's data when we removed the
+                container. Let's fix that now by attaching a Named Volume to
+                PostgreSQL's data directory.
+              </p>
+              <ol>
+                <li>Create a volume: <code>docker volume create tasks-db</code>.</li>
+                <li>
+                  Run the database with the volume mounted at its data directory:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker run -d --name db -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=tasks -v tasks-db:/var/lib/postgresql/data -p 5432:5432 postgres:16</code></pre>
+                  </figure>
+                </li>
+                <li>
+                  Create a table and insert a row:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker exec -it db psql -U postgres -d tasks -c "CREATE TABLE t(id int); INSERT INTO t VALUES (1);"</code></pre>
+                  </figure>
+                </li>
+                <li>Remove the container entirely: <code>docker rm -f db</code>.</li>
+                <li>Start the database again with the same command from step 2 (same volume).</li>
+                <li>
+                  Confirm the data survived:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker exec -it db psql -U postgres -d tasks -c "SELECT * FROM t;"</code></pre>
+                  </figure>
+                </li>
+              </ol>
+              <p>
+                <strong>Output:</strong> row <code>1</code> is still there despite
+                removing the container. Your database is now persistent. In the next
+                chapter we make the app and the database talk over the network.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Expecting data to persist without a volume</p>
+              <p>Without a volume, everything the container wrote is deleted with it. Mount a volume for any data that must survive.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> A Bind Mount for database data</p>
+              <p>
+                On Windows/macOS it can cause performance and permission issues. For
+                persistent data prefer a Named Volume, and keep Bind Mounts for
+                development.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Anonymous volumes piling up</p>
+              <p>
+                Some Images create anonymous volumes automatically. Clean them
+                periodically with <code>docker volume prune</code>.
+              </p>
+            </div>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> Removing a container ≠ removing the volume</p>
+              <p>
+                <code>docker rm</code> does not remove the Named Volume (by design,
+                to protect your data). To remove it explicitly, use
+                <code>docker volume rm</code>.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🗄️ Named Volume for persistent data</h4>
+                <p>Databases and uploaded files → always a Named Volume.</p>
+              </div>
+              <div class="card">
+                <h4>💻 Bind Mount for development</h4>
+                <p>To mount live code or config files during local development.</p>
+              </div>
+              <div class="card">
+                <h4>🏷️ Name volumes clearly</h4>
+                <p><code>tasks-db</code> is clearer than an anonymous volume when maintaining or backing up.</p>
+              </div>
+              <div class="card">
+                <h4>🔒 <code>:ro</code> for read-only</h4>
+                <p>Mount as read-only whatever the container doesn't need to write to.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Cheat sheet</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+                  <tbody>
+                    <tr><td>docker volume create &lt;name&gt;</td><td>Create a Named Volume</td></tr>
+                    <tr><td>docker volume ls</td><td>List volumes</td></tr>
+                    <tr><td>docker volume inspect &lt;name&gt;</td><td>Volume details (and location)</td></tr>
+                    <tr><td>docker volume rm &lt;name&gt;</td><td>Remove a volume</td></tr>
+                    <tr><td>docker volume prune</td><td>Remove unused volumes</td></tr>
+                    <tr><td>-v name:/path/in/container</td><td>Mount a Named Volume</td></tr>
+                    <tr><td>-v /host/path:/path:ro</td><td>Mount a Bind Mount (read-only)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li>Container data is ephemeral; persistent storage lives in an independent volume.</li>
+                <li>Named Volume (Docker-managed) for persistent data; Bind Mount (host path) for development.</li>
+                <li>Removing a container doesn't remove the Named Volume.</li>
+                <li>PostgreSQL persists its data by mounting a volume at <code>/var/lib/postgresql/data</code>.</li>
+              </ul>
+              <h3>Important commands</h3>
+              <ul>
+                <li><code>docker volume create / ls / inspect / rm / prune</code></li>
+                <li><code>-v name:/path</code> and <code>-v /host:/path:ro</code></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li>Expecting data to persist without a volume.</li>
+                <li>A Bind Mount for database data in production.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 3: Docker Images — what an image is, layers and shared storage, registries and Docker Hub, and the pull, tag, and push commands."
+    />
+    <title>Chapter 3: Images — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="3">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 3: Images</h1>
+            <p>
+              The Image is the thing we build, move, and ship. In this chapter we
+              open it from the inside: what it's made of, why it's built from
+              <strong>layers</strong>, and where we pull it from and push it to.
+            </p>
+            <p>
+              Understanding layers will change how you write your Dockerfile later,
+              and make your Images smaller and faster.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--beginner">Beginner</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Describe an Image as stacked, read-only layers.</li>
+              <li>Explain how layers are shared between Images to save space and time.</li>
+              <li>Read a full image name: <code>registry/repository:tag</code>.</li>
+              <li>Tell the Registry, Repository, and Tag apart.</li>
+              <li>Pull Images, re-tag them, and push them to Docker Hub.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <ul>
+              <li>Finishing Chapter 2, with Docker working (<code>docker run hello-world</code> succeeds).</li>
+              <li>A free account on <code>hub.docker.com</code> (needed for the push section).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>What is an Image, really?</h2>
+            <p>
+              An Image is a read-only template. It contains everything the app
+              needs to run: a filesystem, libraries, a runtime, and settings. But
+              it isn't a single opaque file — it's built from stacked
+              <strong>layers</strong>.
+            </p>
+
+            <h2>Layers</h2>
+            <p>
+              Each step in building the Image adds a new <strong>layer</strong> on
+              top of the previous one. Every layer is read-only and represents only
+              the change that step made.
+            </p>
+            <p>An example of stacked layers for a typical app Image:</p>
+            <ul>
+              <li>Base layer: a small Linux distribution (base image).</li>
+              <li>On top of it: the runtime and libraries.</li>
+              <li>Top layer: your app's files.</li>
+            </ul>
+            <p>
+              When you run a container from the Image, Docker adds a <strong>thin
+              writable layer</strong> on top of the read-only image layers. Every
+              change while the container runs is written only there, without
+              touching the Image.
+            </p>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> Why do layers matter?</p>
+              <p>
+                Layers are <strong>stored once and shared</strong> across all the
+                Images and containers that use them. If ten Images share the same
+                base layer, it's stored on disk <strong>once</strong>. This is also
+                what makes <code>pull</code> and builds faster: only the new layers
+                are transferred.
+              </p>
+            </div>
+
+            <h2>Image name: Registry, Repository, and Tag</h2>
+            <p>A full image name has three parts:</p>
+            <figure class="code-block" data-lang="bash" data-title="Image name structure">
+              <pre><code class="language-bash">docker.io / library/nginx : 1.27
+#  registry     repository    tag
+
+# The default parts are usually omitted:
+nginx            # = docker.io/library/nginx:latest</code></pre>
+            </figure>
+            <ul>
+              <li><strong>Registry</strong>: where images are stored (default <code>docker.io</code>, i.e. Docker Hub).</li>
+              <li><strong>Repository</strong>: the image name itself (official images live under <code>library/</code>).</li>
+              <li><strong>Tag</strong>: a specific version (default <code>latest</code>).</li>
+            </ul>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> Beware the <code>latest</code> tag</p>
+              <p>
+                <code>latest</code> is not "always the newest" — it's just a default
+                tag that may point at any version. Rely on an explicit tag like
+                <code>nginx:1.27</code> for reproducible results.
+              </p>
+            </div>
+
+            <h3>The digest: an immutable reference</h3>
+            <p>
+              A tag can be repointed to different content later. A
+              <strong>digest</strong> (a <code>sha256</code> fingerprint) points to
+              specific content that never changes — useful when you want a strict
+              pin:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker pull nginx@sha256:1a2b3c...   # exactly the same content every time</code></pre>
+            </figure>
+
+            <h2>Registries and Docker Hub</h2>
+            <p>
+              A Registry is a store for images. The most famous is
+              <strong>Docker Hub</strong> (public and default), and there are others
+              like the GitHub Container Registry (<code>ghcr.io</code>) and private
+              registries inside companies.
+            </p>
+            <p>On Docker Hub you'll find several kinds of images:</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Example</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Official</td><td><code>nginx</code>, <code>postgres</code></td><td>Maintained by Docker, trusted</td></tr>
+                  <tr><td>Verified Publisher</td><td><code>eclipse-temurin</code></td><td>From known vendors</td></tr>
+                  <tr><td>Community</td><td><code>username/app</code></td><td>From any user — verify them</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> Stacked transparent sheets</p>
+              <p>
+                Picture layers as transparent plastic sheets, each with part of the
+                image drawn on it. Stack them and you get the full image. To change
+                a top layer you don't need to redraw the lower ones — you only
+                replace the sheet that changed.
+              </p>
+              <p>
+                And if you know Git, layers are like commits: each records the
+                change on top of what came before, and the Registry is like GitHub
+                but for images.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>The read-only Image and the writable container layer</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    W["Writable Layer — the container"]:::rw
+    L3["Layer: app files"]:::ro
+    L2["Layer: runtime and libraries"]:::ro
+    L1["Layer: base OS"]:::ro
+    W --> L3 --> L2 --> L1
+    classDef ro fill:#2496ed22,stroke:#2496ed;
+    classDef rw fill:#6db33f22,stroke:#6db33f,stroke-dasharray:4 3;
+              </pre>
+              <figcaption>
+                The image layers are read-only and shared, and each container adds
+                its own writable layer on top.
+              </figcaption>
+            </figure>
+
+            <h3>Sharing layers between Images</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    BASE["debian base layer (stored once)"]
+    BASE --> N["nginx image"]
+    BASE --> P["postgres image"]
+              </pre>
+              <figcaption>
+                The nginx and postgres images share the same base layer, so it's
+                stored on disk only once.
+              </figcaption>
+            </figure>
+
+            <h3>Pulling and pushing images</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    L["Your local machine"] -->|"docker push"| R["Registry — Docker Hub"]
+    R -->|"docker pull"| L
+              </pre>
+              <figcaption>You pull images from the registry, and push yours to it to share.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: pulling an image and inspecting its layers</h2>
+            <p>Let's pull an image and explore it. We start by pulling a small image:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker pull alpine:3.20</code></pre>
+            </figure>
+            <p>Then we list local images with their sizes:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker images</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="Output">
+              <pre><code class="language-bash">REPOSITORY   TAG       IMAGE ID       CREATED       SIZE
+alpine       3.20      1d34ff...      2 weeks ago   8.17MB</code></pre>
+            </figure>
+            <p>To see the layers that make up the image, we use <code>docker history</code>:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker history alpine:3.20</code></pre>
+            </figure>
+            <p>
+              Each line in the output represents a layer and the command that
+              created it. Note that layers with a size of <code>0B</code> are
+              metadata that take up no real space.
+            </p>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on: re-tagging an image and pushing it</h2>
+            <p>
+              We'll push an image to your Docker Hub account. (We haven't built our
+              own image yet — that's the Dockerfile chapter — so we'll re-tag an
+              existing image to show the mechanism.)
+            </p>
+            <p><strong>1) Log in to Docker Hub:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker login</code></pre>
+            </figure>
+            <p><strong>2) Re-tag the image with a name that starts with your username</strong> (replace <code>YOUR_USER</code>):</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker tag alpine:3.20 YOUR_USER/my-alpine:1.0</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Note</p>
+              <p>
+                <code>docker tag</code> doesn't copy the image — it adds another
+                name that points to the same layers. To push to Docker Hub, the
+                name must start with your username (<code>YOUR_USER/...</code>).
+              </p>
+            </div>
+            <p><strong>3) Push the image:</strong></p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker push YOUR_USER/my-alpine:1.0</code></pre>
+            </figure>
+            <p>Now anyone can pull it with <code>docker pull YOUR_USER/my-alpine:1.0</code>.</p>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 3: explore the base image</p>
+              <p>
+                In the coming chapters we'll build an image for our app on top of a
+                base image that carries a Java runtime. Let's get to know it now.
+              </p>
+              <ol>
+                <li>Pull a Java base image: <code>docker pull eclipse-temurin:21-jre</code>.</li>
+                <li>Compare its size to <code>alpine</code> via <code>docker images</code>. Why the difference?</li>
+                <li>Inspect its layers with <code>docker history eclipse-temurin:21-jre</code>.</li>
+                <li>Re-tag it under your name: <code>docker tag eclipse-temurin:21-jre YOUR_USER/java-base:21</code>.</li>
+                <li>(Optional) Push it to Docker Hub.</li>
+                <li>Remove the tag you created with <code>docker rmi YOUR_USER/java-base:21</code> and note that the original image remains.</li>
+              </ol>
+              <p>
+                <strong>Output:</strong> a Java base image ready locally — the one
+                we'll build on top of in the Dockerfile chapter.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Relying on <code>latest</code></p>
+              <p>
+                What <code>latest</code> points to may differ between machines or
+                over time, giving unexpected results. Pin an explicit tag.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Forgetting <code>docker login</code> before pushing</p>
+              <p>
+                Trying to <code>push</code> without logging in, or without naming
+                the image after your username, fails with a permissions (denied)
+                error.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Confusing Repository and Tag</p>
+              <p>
+                <code>nginx</code> is a repository, and <code>1.27</code> is a tag
+                inside it. One repository holds many tags/versions.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>📌 Pin explicit tags</h4>
+                <p>Use <code>postgres:16</code>, not <code>postgres:latest</code>, for reproducibility.</p>
+              </div>
+              <div class="card">
+                <h4>🛡️ Prefer official and verified images</h4>
+                <p>Lower security risk and better maintenance than unknown community images.</p>
+              </div>
+              <div class="card">
+                <h4>🪶 Start from a small base</h4>
+                <p>A smaller base = fewer layers, faster pulls, and a smaller attack surface.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Cheat sheet</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Command</th>
+                      <th>What it does</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>docker pull &lt;image&gt;:&lt;tag&gt;</td><td>Pull an image from a registry</td></tr>
+                    <tr><td>docker images</td><td>List local images and their sizes</td></tr>
+                    <tr><td>docker history &lt;image&gt;</td><td>Show an image's layers</td></tr>
+                    <tr><td>docker image inspect &lt;image&gt;</td><td>Image details (JSON)</td></tr>
+                    <tr><td>docker tag &lt;src&gt; &lt;user&gt;/&lt;repo&gt;:&lt;tag&gt;</td><td>Add a new name/tag</td></tr>
+                    <tr><td>docker login</td><td>Log in to a registry</td></tr>
+                    <tr><td>docker push &lt;user&gt;/&lt;repo&gt;:&lt;tag&gt;</td><td>Push an image to a registry</td></tr>
+                    <tr><td>docker rmi &lt;image&gt;</td><td>Remove a local image/tag</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li>An Image is built from stacked read-only layers, and a container adds a writable layer on top.</li>
+                <li>Layers are stored once and shared, saving space and speeding up pulls and builds.</li>
+                <li>An image name = <code>registry/repository:tag</code>, defaulting to Docker Hub and <code>latest</code>.</li>
+                <li>A digest is an immutable reference, while a tag is mutable.</li>
+              </ul>
+              <h3>Important commands</h3>
+              <ul>
+                <li><code>docker pull</code> / <code>docker images</code> / <code>docker history</code></li>
+                <li><code>docker tag</code> / <code>docker login</code> / <code>docker push</code></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li>Relying on <code>latest</code>.</li>
+                <li>Forgetting to log in or to name the image after yourself before pushing.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

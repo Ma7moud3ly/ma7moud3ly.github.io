@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 10: Docker interview questions bank — a curated set of real interview questions with precise answers, grouped by topic from fundamentals to production."
+    />
+    <title>Chapter 10: Interview Questions — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="10">
+            <!-- ============ Introduction ============ -->
+            <h1>Chapter 10: Interview Questions</h1>
+            <p>
+              This chapter is a bank of real Docker interview questions, grouped by
+              topic with short, precise answers. Read the question, try to answer it
+              yourself, then reveal the solution.
+            </p>
+            <p>The questions progress from the basics to advanced production topics.</p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge">All levels</span>
+              </span>
+              <span class="chapter-meta__item">🎤 60+ questions</span>
+            </div>
+
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> How to use this chapter</p>
+              <p>
+                Don't memorize answers. Understand <em>why</em>, and connect them to
+                what you did in the labs. A good interviewer asks "why" and "what if",
+                not just definitions.
+              </p>
+            </div>
+
+            <!-- ============ 1. Fundamentals ============ -->
+            <h2>1. Docker and container fundamentals</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is the "works on my machine" problem, and how does Docker solve it?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>It comes from differences in the runtime environment between machines (runtime version, settings, dependencies). Docker packages the app with its full environment into one Image that runs the same everywhere, eliminating that difference.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between a Virtual Machine and a Container?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>A VM emulates a whole machine with a guest OS on top of a Hypervisor, so it's heavy (gigabytes) and slow to boot. A Container is an isolated process that shares the host kernel, so it's light (megabytes), fast (seconds), and higher-density.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between an Image and a Container?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>An Image is a read-only template holding the app and its environment. A Container is a live, runnable instance of it. From one Image you run many Containers (like a Class and an Object).</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Does a container contain a full operating system?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>No. It contains only the app's files and environment, and shares the host OS kernel. That's why it's lighter and faster than a VM.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Explain Docker's architecture.</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Three parts: the <strong>Docker Client</strong> (the commands you type), the <strong>Docker Daemon</strong> (the server that builds and runs), and the <strong>Registry</strong> (image store like Docker Hub). It works as a client/server model over a REST API.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is the role of the Docker Daemon?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>The background process (<code>dockerd</code>) that receives the Client's requests and actually executes them: building images, pulling them, and running and managing containers.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>List the stages of the container lifecycle.</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Created (<code>docker create</code>) → Running (<code>start</code>) → may pass through Paused → Stopped (<code>stop</code>) → Removed (<code>rm</code>). And <code>docker run</code> combines create and start.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>On Windows, where do containers actually run?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>The CLI (<code>docker.exe</code>) runs natively on Windows, but the Engine and containers run inside <strong>WSL 2</strong> because containers need a Linux kernel. The Client sends commands via an API to the Daemon in WSL 2.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Does Docker remove the need for a runtime?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>No. Docker doesn't replace the runtime — it bundles it. A Java app still needs a JRE, but now it lives inside the Image at a version we control.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 2. Images ============ -->
+            <h2>2. Images, layers, and registries</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is an Image made of?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Of stacked read-only layers, each representing a change on top of the previous one, plus metadata describing how to run it.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the benefit of splitting an Image into layers?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Sharing and caching: shared layers are stored once, and building or pulling only processes the new layers — saving space and time.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Where are a running container's changes written, and what happens on removal?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>In a thin writable layer on top of the read-only image layers (copy-on-write). That layer disappears when the container is removed, which is why we use a volume for persistent data.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Explain the image name <code>docker.io/library/nginx:1.27</code>.</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>docker.io</code> = Registry, <code>library/nginx</code> = Repository (<code>library/</code> is for official images), and <code>1.27</code> = Tag.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between a tag and a digest?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>A tag is a mutable name that can be repointed. A digest is a <code>sha256</code> fingerprint of the content, immutable, so it guarantees pulling exactly the same content every time.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Why should you avoid <code>latest</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>It's a default tag that may point to a different version across machines or over time, so you lose reproducibility. Pin an explicit tag.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Does <code>docker tag</code> copy the Image?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>No. It adds a new name (reference) pointing to the same layers. Removing one name doesn't remove the layers as long as another name points to them.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's required to push an Image to Docker Hub?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>docker login</code>, an image name that starts with your username/organization (<code>username/repo:tag</code>), then <code>docker push</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you reduce an Image's size?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>A small base (<code>jre</code> not <code>jdk</code>), a multi-stage build, ordering instructions for caching, a <code>.dockerignore</code>, and combining <code>RUN</code> commands and removing temp files.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 3. Containers ============ -->
+            <h2>3. Running and managing containers</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between <code>docker run</code> and <code>docker start</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>run</code> creates a new container from an Image and starts it. <code>start</code> restarts an existing stopped container without creating a new one.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What do <code>-d</code> and <code>-it</code> mean?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>-d</code> (detached): run in the background. <code>-it</code> = <code>-i</code> (keep input open) + <code>-t</code> (a TTY terminal), for an interactive session like a shell.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between <code>docker stop</code> and <code>docker kill</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>stop</code> sends SIGTERM and gives the process time for a clean shutdown, then SIGKILL. <code>kill</code> sends SIGKILL immediately with no grace period.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between <code>exec</code> and <code>attach</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>exec</code> runs a new process (like a shell) inside a running container. <code>attach</code> connects you to the main process (PID 1), and closing it may stop the container.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Why does a container sometimes stop right after it starts?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Because a container lives as long as its main process (PID 1) is alive. If the process ends (no long-running service), the container stops. Check the reason with <code>docker logs</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What are restart policies?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>no</code> (default), <code>on-failure</code> on errors, <code>always</code> always, <code>unless-stopped</code> unless you stopped it manually — useful after a machine reboot.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you remove all stopped containers?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>docker container prune</code>. And to force-remove a running one: <code>docker rm -f &lt;name&gt;</code>.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 4. Dockerfile ============ -->
+            <h2>4. Dockerfile</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between <code>COPY</code> and <code>ADD</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Both copy files. <code>ADD</code> also auto-unpacks tar archives and downloads from a URL. We prefer <code>COPY</code> for clarity, and <code>ADD</code> only when explicitly needed.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between <code>CMD</code> and <code>ENTRYPOINT</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>ENTRYPOINT</code> is the fixed program that always runs. <code>CMD</code> is default arguments changeable at run time. They're often combined: entrypoint for the program, cmd for the arguments.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between <code>RUN</code> and <code>CMD</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>RUN</code> runs at <strong>build</strong> time and makes a layer (like installing a tool). <code>CMD</code> defines what runs at <strong>container run</strong> time.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Why prefer exec form over shell form?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Bracket (exec) form runs the program directly as PID 1, so SIGTERM reaches it and it stops cleanly. Shell form goes through a shell and breaks signal delivery, slowing the stop.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is the "build context" and the role of <code>.dockerignore</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>The files in the path passed to <code>docker build</code>, sent to the Daemon. <code>.dockerignore</code> excludes what's not needed (like <code>.git</code>), shrinking the context and speeding the build.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Why does instruction order affect caching?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Changing an instruction invalidates its layer and everything after it. Putting rarely-changing things first (like dependencies) and changing code last reuses the most layers.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Does <code>EXPOSE</code> publish the port?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>No, it's documentation only. Actual publishing to the host is done with <code>-p host:container</code> at run time.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is a multi-stage build and why use it?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>A build in several stages: one stage builds the artifact with build tools, and a runtime stage takes only the artifact. The result is a smaller, safer Image with no build tools or source code. <code>COPY --from=build</code> copies from an earlier stage.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Why run a container as a non-root user?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>To limit the impact of any breach. We create a low-privilege user and run as it with <code>USER</code>, so an attacker doesn't gain broad privileges inside the container or on the host.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 5. Volumes ============ -->
+            <h2>5. Storage (Volumes)</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Why is container data ephemeral?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Because it's written to the container's own writable layer, which is deleted with it. To keep it, we store it in a volume independent of the container's lifecycle.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between a Named Volume and a Bind Mount?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>A Named Volume is managed by Docker in its own area, best for persistent, portable data. A Bind Mount maps a host path, best for development where changes reflect immediately.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you persist PostgreSQL data?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>By mounting a Named Volume at its data directory: <code>-v tasks-db:/var/lib/postgresql/data</code>, so it survives container removal.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Does <code>docker rm</code> remove the attached volume?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>No. The Named Volume stays (to protect the data). Remove it explicitly with <code>docker volume rm</code>, or <code>docker volume prune</code> for unused ones.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is an anonymous volume and why watch out for it?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>A volume with no name Docker creates automatically (often via a <code>VOLUME</code> instruction). It's hard to track and piles up, so we prefer naming volumes and cleaning unused ones with <code>prune</code>.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 6. Networking ============ -->
+            <h2>6. Networking</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between the default bridge and a user-defined bridge?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>On a user-defined network, internal DNS works so containers recognize each other by name; on the default one they connect by IP only. So we create a user-defined network for any multi-container app.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do containers find each other?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Via internal DNS on a shared user-defined network: a container's name becomes a hostname another container can connect to directly.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What does <code>-p 8080:80</code> do, and how is it different from <code>EXPOSE</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>It publishes container port <code>80</code> on host port <code>8080</code> (syntax <code>host:container</code>), making it reachable from outside Docker. <code>EXPOSE</code> is documentation only and publishes nothing.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Why not use <code>localhost</code> between two containers?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Because <code>localhost</code> inside a container refers to the container itself, not another container or the host. Use the target container's name on the shared network.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is the <code>host</code> network and when is it used?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>It makes the container share the host's network stack directly, with no isolation and no need for <code>-p</code>. Useful for performance on Linux, but it loses isolation and works fully only on Linux.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Can two containers on different networks communicate?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>No, unless one is connected to the other's network (<code>docker network connect</code>) or they share a network.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 7. Compose ============ -->
+            <h2>7. Docker Compose</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is Docker Compose and when do you use it?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>A tool to describe and run a multi-container app from one <code>compose.yaml</code> file. Use it when your app is made of several services (app + database + cache…) managed together.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What are the core sections of <code>compose.yaml</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>services</code> (containers), <code>volumes</code> (persistent storage), and <code>networks</code> (optional, since Compose creates one automatically).</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do services find each other in Compose?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Compose puts all services on one user-defined network, so each reaches another by the service name as a hostname via internal DNS.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between <code>down</code> and <code>stop</code>?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>stop</code> only stops the containers. <code>down</code> stops and removes them along with the network. Named Volumes stay unless you use <code>down -v</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What does <code>depends_on</code> guarantee?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Start order only, not readiness to accept connections. For readiness, use a health check with <code>condition: service_healthy</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you pass settings and secrets without writing them in the file?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Via a <code>.env</code> file next to <code>compose.yaml</code>, then <code>${VAR}</code> in the file. For production, dedicated secret tools are used, and values aren't committed to Git.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What's the difference between <code>image</code> and <code>build</code> in a service?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>image</code> uses a ready-made image from a registry. <code>build</code> builds the image from a local <code>Dockerfile</code> at run time.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ 8. Real apps & Production ============ -->
+            <h2>8. Real apps and production</h2>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you configure an app's database connection inside a container?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Via environment variables (the 12-factor principle) instead of hard-coding settings, so they can change per environment without rebuilding the Image.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What goes in place of the host in the database connection URL?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>The database service's name on the network (like <code>db</code>), because services recognize each other by name. Not <code>localhost</code>.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you wait for the database to be ready before starting the app?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p><code>depends_on</code> alone guarantees start, not readiness. Add a health check on the database (<code>pg_isready</code>) and make the app wait with <code>condition: service_healthy</code>. It's also good for the app to retry on connection failure.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you check an app's health inside a container?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Via a health endpoint the app exposes (in Spring Boot: Actuator and <code>/actuator/health</code>), used in a <code>HEALTHCHECK</code> or by the orchestrator.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Where do you put secrets in production?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Always outside the Image: environment variables or a secret manager, passed at run time. Never baked into layers (they can be extracted) and never pushed to a public registry.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>Why care about JVM memory inside a container?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>The JVM must respect the container's memory limit, not the host's. Set <code>-XX:MaxRAMPercentage</code> to avoid exceeding memory and getting the container OOM-killed.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you scan an Image for vulnerabilities?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>With tools like <code>docker scout</code> or Trivy, which scan the layers and packages against known-vulnerability databases, and are often integrated into the CI pipeline.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>What is the role of CI/CD with Docker?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Automating building, scanning, and pushing the Image to a registry on every change, then deploying. Releases become consistent, reproducible, and fast, with no manual steps.</p>
+              </details></div>
+            </div>
+
+            <div class="interview">
+              <div class="interview__header"><span>🎤</span><span>How do you make an Image build reproducible?</span></div>
+              <div class="interview__body"><details><summary>Show answer</summary>
+                <p>Pin base tags (and possibly a digest), build inside Docker with multi-stage (don't rely on your machine), use <code>.dockerignore</code>, and pin dependency versions.</p>
+              </details></div>
+            </div>
+
+            <!-- ============ Closing tips ============ -->
+            <div class="summary-box">
+              <h2>Quick interview tips</h2>
+              <ul>
+                <li>Tie every answer to something you actually did (building an Image, a volume, a network, Compose).</li>
+                <li>When asked "why", mention the alternative and its downsides, not just the definition.</li>
+                <li>Be honest about what you don't know, then explain how you'd find out.</li>
+                <li>Review the common distinctions: Image/Container, CMD/ENTRYPOINT, volume/bind mount, default/user-defined bridge.</li>
+              </ul>
+            </div>
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

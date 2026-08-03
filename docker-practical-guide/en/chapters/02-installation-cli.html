@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Chapter 2: Installing Docker and the CLI — Docker Desktop and WSL, verifying with docker version and docker info, running hello-world, and CLI basics."
+    />
+    <title>Chapter 2: Installation & the CLI — Docker: A Practical Guide</title>
+
+    <script src="../../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../../assets/css/theme.css" />
+    <link rel="stylesheet" href="../../assets/css/layout.css" />
+    <link rel="stylesheet" href="../../assets/css/components.css" />
+    <link rel="stylesheet" href="../../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="2">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>Chapter 2: Installation & the CLI</h1>
+            <p>
+              In the previous chapter we understood <em>why</em> Docker. Now we
+              install it and run our first container. From here on, you'll run the
+              commands yourself on your machine.
+            </p>
+            <p>
+              We'll see the difference between Docker Desktop and Docker Engine,
+              the role of WSL on Windows, how to confirm the install worked, and
+              the structure of the CLI commands.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ Reading time: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 Level: <span class="badge badge--beginner">Beginner</span>
+              </span>
+              <span class="chapter-meta__item">🧪 1 hands-on lab</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>Learning objectives</h2>
+            <p>By the end of this chapter you'll know how to:</p>
+            <ul class="objectives">
+              <li>Tell Docker Desktop apart from Docker Engine and when to use each.</li>
+              <li>Explain the role of WSL 2 in running Docker on Windows.</li>
+              <li>Install Docker and verify it with <code>docker version</code> and <code>docker info</code>.</li>
+              <li>Run your first container with <code>docker run hello-world</code>.</li>
+              <li>Read the CLI command structure and lean on <code>--help</code>.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>Prerequisites</h2>
+            <ul>
+              <li>Finishing Chapter 1 (the core concepts of containers and Images).</li>
+              <li>A Windows 10/11, macOS, or Linux machine with permission to install software.</li>
+              <li>An internet connection to download Docker and the first Image.</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>Docker Desktop vs Docker Engine</h2>
+            <p>There are two ways to run Docker, and the difference between them is a common source of confusion:</p>
+            <ul>
+              <li>
+                <strong>Docker Engine</strong>: Docker itself (the Daemon and the
+                CLI). It runs natively on <strong>Linux</strong>.
+              </li>
+              <li>
+                <strong>Docker Desktop</strong>: a GUI app for Windows and macOS
+                that runs Docker Engine <em>inside a lightweight Linux machine</em>
+                in the background, and adds a UI, a dashboard, and tools.
+              </li>
+            </ul>
+            <p>
+              The reason: containers rely on the Linux kernel. So on Windows and
+              macOS, Docker needs a Linux layer running underneath — and that's
+              where WSL comes in.
+            </p>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>System</th>
+                    <th>Best fit</th>
+                    <th>How it works</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Windows 10/11</td><td>Docker Desktop</td><td>Via WSL 2 (Linux kernel)</td></tr>
+                  <tr><td>macOS</td><td>Docker Desktop</td><td>Via a lightweight VM</td></tr>
+                  <tr><td>Linux</td><td>Docker Engine</td><td>Natively on the system kernel</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2>The role of WSL 2 on Windows</h2>
+            <p>
+              WSL 2 (Windows Subsystem for Linux) is a real Linux kernel running
+              inside Windows. Docker Desktop uses it to run containers, so you get
+              near-Linux performance without leaving Windows.
+            </p>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Note</p>
+              <p>
+                A modern Docker Desktop installer usually enables WSL 2
+                automatically. If you hit a problem, enable it manually with
+                <code>wsl --install</code> in PowerShell as administrator, then
+                restart.
+              </p>
+            </div>
+
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> The CLI runs natively on Windows</p>
+              <p>
+                A frequent point of confusion: WSL 2 is required for the
+                <strong>Engine</strong> that runs containers, not for the command
+                line. Remember that Docker splits into two parts (as we saw with
+                <code>docker version</code>):
+              </p>
+              <ul>
+                <li>
+                  <strong>Docker CLI (Client)</strong> — the <code>docker</code>
+                  command you type, runs <strong>natively on Windows</strong> from
+                  PowerShell, CMD, or Windows Terminal.
+                </li>
+                <li>
+                  <strong>Docker Engine (Server/Daemon)</strong> — the part that
+                  actually builds images and runs containers, runs
+                  <strong>inside WSL 2</strong> because containers need a Linux
+                  kernel.
+                </li>
+              </ul>
+              <p>
+                So when you run <code>docker run</code> in PowerShell,
+                <code>docker.exe</code> handles the command locally on Windows, then
+                sends it via an API to the Daemon inside WSL 2, which runs the
+                container. You never leave PowerShell.
+              </p>
+            </div>
+
+            <h2>Installation steps</h2>
+            <h3>Windows / macOS</h3>
+            <ol>
+              <li>Download Docker Desktop from the official site, <code>docker.com</code>.</li>
+              <li>Run the installer and leave the "Use WSL 2 based engine" option enabled (on Windows).</li>
+              <li>Restart if asked, then open Docker Desktop and wait until its status becomes "Running".</li>
+            </ol>
+
+            <h3>Linux (Ubuntu example)</h3>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash"># Install Docker Engine via Docker's official script
+curl -fsSL https://get.docker.com | sh
+
+# Start the service and enable it on boot
+sudo systemctl enable --now docker
+
+# Run docker without sudo (requires logging out and back in)
+sudo usermod -aG docker $USER</code></pre>
+            </figure>
+
+            <h2>The structure of CLI commands</h2>
+            <p>
+              Every Docker command follows one pattern. Understanding it means you
+              can guess commands instead of memorizing them:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Command structure">
+              <pre><code class="language-bash">docker  &lt;management-command&gt;  &lt;sub-command&gt;  [options]
+#        command group           action        options
+
+docker container ls
+docker image pull nginx
+docker volume create data</code></pre>
+            </figure>
+            <p>
+              Because some commands are used so often, Docker provides shortcuts.
+              For example, <code>docker ps</code> is short for
+              <code>docker container ls</code>, and <code>docker run</code> is
+              short for <code>docker container run</code>.
+            </p>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>Real-world analogy</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> Dashboard and remote control</p>
+              <p>
+                <strong>Docker Desktop</strong> is like a car's dashboard: you
+                watch everything visually. The <strong>CLI</strong> is like a
+                precise remote control: faster and more powerful for repetitive
+                tasks. The real engine (Docker Engine) is the same either way — you
+                control it the way that suits you.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>Diagrams</h2>
+
+            <h3>How Docker works on Windows</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart TB
+    subgraph WIN["Windows"]
+        CLI["Docker CLI + Docker Desktop"]
+        subgraph WSL["WSL 2 — Linux kernel"]
+            D["Docker Daemon (dockerd)"]
+            C1["Container"]
+            C2["Container"]
+            D --> C1
+            D --> C2
+        end
+        CLI -->|"commands"| D
+    end
+              </pre>
+              <figcaption>
+                You type commands on Windows, but the containers actually run
+                inside the Linux kernel via WSL 2.
+              </figcaption>
+            </figure>
+
+            <h3>Anatomy of a Docker command</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    A["docker"] --> B["container"]
+    B --> C["run"]
+    C --> D["-p 8080:80"]
+    D --> E["nginx"]
+    A -. shortcut .-> F["docker run"]
+              </pre>
+              <figcaption>The full command and the shortcut do the same thing.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>Example: verifying the install</h2>
+            <p>
+              The first thing to do after installing is to confirm the Client can
+              talk to the Daemon. <code>docker version</code> shows both sides'
+              versions:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker version</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="Output (abridged)">
+              <pre><code class="language-bash">Client:
+ Version:           27.3.1
+ API version:       1.47
+Server: Docker Desktop
+ Engine:
+  Version:          27.3.1
+  API version:      1.47 (minimum version 1.24)</code></pre>
+            </figure>
+            <p>
+              Having both a <code>Client</code> and a <code>Server</code> section
+              means everything works. <code>docker info</code> gives a fuller
+              picture of the system:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker info</code></pre>
+            </figure>
+            <figure class="code-block" data-lang="bash" data-title="Output (excerpt)">
+              <pre><code class="language-bash">Server:
+ Containers: 0
+  Running: 0
+ Images: 0
+ Operating System: Docker Desktop
+ Total Memory: 7.6GiB</code></pre>
+            </figure>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>Hands-on: your first container</h2>
+            <p>Now we run the traditional container to confirm the whole chain works:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run hello-world</code></pre>
+            </figure>
+            <p>
+              Because the image isn't present locally, Docker pulls it from Docker
+              Hub then runs it, printing a success message:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Output (abridged)">
+              <pre><code class="language-bash">Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+Hello from Docker!
+This message shows that your installation appears to be working correctly.</code></pre>
+            </figure>
+
+            <p>
+              Let's try something we can see in the browser. We'll run the
+              <code>nginx</code> web server in the background and map its port:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d -p 8080:80 nginx</code></pre>
+            </figure>
+            <p>
+              Open <code>http://localhost:8080</code> and you'll see the default
+              nginx page. To list running containers:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker ps</code></pre>
+            </figure>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> Note</p>
+              <p>
+                Don't worry about the details of <code>-d</code> and
+                <code>-p</code> now — we explain them thoroughly in the Containers
+                chapter. It's enough to see that Docker works.
+              </p>
+            </div>
+
+            <h3>Getting help</h3>
+            <p>Don't memorize commands — ask Docker itself:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker --help          # all command groups
+docker run --help      # options for a specific command</code></pre>
+            </figure>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>Hands-on lab</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> Lab 2: set up your environment</p>
+              <p>
+                The goal of this lab is to come out with a working Docker on your
+                machine — the foundation for every chapter ahead.
+              </p>
+              <ol>
+                <li>Install the right Docker for your system (Desktop or Engine).</li>
+                <li>Run <code>docker version</code> and confirm both a Client and a Server section appear.</li>
+                <li>Run <code>docker run hello-world</code> and confirm the success message.</li>
+                <li>Run <code>docker run -d -p 8080:80 nginx</code>, then open <code>http://localhost:8080</code>.</li>
+                <li>Run <code>docker ps</code> to see the container, then stop it with <code>docker stop &lt;container-id&gt;</code>.</li>
+              </ol>
+              <p>
+                <strong>Output:</strong> a ready, verified Docker environment. In
+                the next chapter we dive into Images and their layers.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>Common mistakes</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> "Cannot connect to the Docker daemon"</p>
+              <p>
+                This means the Daemon isn't running. On Windows/macOS: open Docker
+                Desktop and wait for "Running". On Linux:
+                <code>sudo systemctl start docker</code>.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> Always needing sudo on Linux</p>
+              <p>
+                Add your user to the docker group
+                (<code>sudo usermod -aG docker $USER</code>), then log out and back
+                in.
+              </p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> "port is already allocated"</p>
+              <p>
+                The port (e.g. 8080) is already in use. Pick another one like
+                <code>-p 9090:80</code>, or stop whatever is using the port.
+              </p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>Best practices</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🔄 Keep Docker updated</h4>
+                <p>Newer versions are more secure, faster, and support the latest features.</p>
+              </div>
+              <div class="card">
+                <h4>❓ Rely on <code>--help</code></h4>
+                <p>Faster than searching online, and it shows the options available in exactly your version.</p>
+              </div>
+              <div class="card">
+                <h4>🐧 On Linux: use the docker group</h4>
+                <p>Avoid repeated <code>sudo</code> by adding your user to the group once.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>Cheat sheet</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Command</th>
+                      <th>What it does</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>docker version</td><td>Client and Server versions</td></tr>
+                    <tr><td>docker info</td><td>Full system information</td></tr>
+                    <tr><td>docker --help</td><td>Show all command groups</td></tr>
+                    <tr><td>docker &lt;cmd&gt; --help</td><td>Options for a specific command</td></tr>
+                    <tr><td>docker run hello-world</td><td>Run the first container to verify</td></tr>
+                    <tr><td>docker run -d -p 8080:80 nginx</td><td>Run a container in the background with a port mapped</td></tr>
+                    <tr><td>docker ps</td><td>List running containers</td></tr>
+                    <tr><td>docker stop &lt;id&gt;</td><td>Stop a container</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>Summary</h2>
+              <h3>Key ideas</h3>
+              <ul>
+                <li>Docker Engine runs on Linux; Docker Desktop runs it on Windows/macOS via a Linux layer.</li>
+                <li>On Windows, WSL 2 is the Linux kernel that actually runs the containers.</li>
+                <li>Verify the install with <code>docker version</code> (Client + Server) and <code>docker info</code>.</li>
+                <li>Every command follows one structure, has shortcuts, and <code>--help</code> is your friend.</li>
+              </ul>
+              <h3>Important commands</h3>
+              <ul>
+                <li><code>docker version</code> / <code>docker info</code></li>
+                <li><code>docker run hello-world</code> / <code>docker ps</code></li>
+              </ul>
+              <h3>Mistakes to avoid</h3>
+              <ul>
+                <li>Forgetting to start Docker Desktop / the docker service.</li>
+                <li>Using a busy port when mapping with <code>-p</code>.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../../site-data-en.js"></script>
+    <script src="../../assets/js/layout.js" defer></script>
+    <script src="../../assets/js/theme.js" defer></script>
+    <script src="../../assets/js/toc.js" defer></script>
+    <script src="../../assets/js/code.js" defer></script>
+    <script src="../../assets/js/main.js" defer></script>
+  </body>
+</html>

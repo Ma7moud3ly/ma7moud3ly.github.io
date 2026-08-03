@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="الفصل السابع: شبكات Docker — الفرق بين الشبكة الافتراضية والمعرّفة، تواصل الحاويات بالاسم عبر DNS، ربط المنافذ، وشبكة host."
+    />
+    <title>الفصل 7: الشبكات (Networking) — دليل Docker بالعربية</title>
+
+    <script src="../assets/js/theme-init.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <link rel="stylesheet" href="../assets/css/layout.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+    <link rel="stylesheet" href="../assets/css/syntax.css" />
+    <link rel="stylesheet" href="../assets/css/print.css" media="print" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">تخطّي إلى المحتوى</a>
+
+    <header id="siteHeader"></header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+      <main id="main" class="content">
+        <div class="content__inner">
+          <article class="chapter" data-chapter="7">
+            <!-- ============ 1. Introduction ============ -->
+            <h1>الفصل 7: الشبكات (Networking)</h1>
+            <p>
+              نادرًا ما تعمل حاوية بمفردها. التطبيق يحتاج التحدّث إلى قاعدة بيانات،
+              والعالم الخارجي يحتاج الوصول إلى التطبيق. هذا الفصل يشرح كيف تتواصل
+              الحاويات: مع بعضها عبر الشبكة، ومع الخارج عبر ربط المنافذ.
+            </p>
+            <p>
+              أهم فكرة هنا — وكثيرًا ما تُغفَل — أن الحاويات على شبكة معرّفة تجد
+              بعضها <strong>بالاسم</strong> تلقائيًّا. هذا ما سيربط تطبيقنا بقاعدته
+              لاحقًا.
+            </p>
+
+            <div class="chapter-meta">
+              <span class="chapter-meta__item">
+                ⏱️ زمن القراءة: <strong data-reading-time>—</strong>
+              </span>
+              <span class="chapter-meta__item">
+                📊 المستوى: <span class="badge badge--intermediate">متوسّط</span>
+              </span>
+              <span class="chapter-meta__item">🧪 معمل تطبيقي واحد</span>
+            </div>
+
+            <!-- ============ 2. Learning Objectives ============ -->
+            <h2>أهداف التعلّم</h2>
+            <p>بنهاية هذا الفصل ستعرف كيف:</p>
+            <ul class="objectives">
+              <li>تفرّق بين الشبكة الافتراضية (default bridge) والمعرّفة (user-defined bridge).</li>
+              <li>تجعل الحاويات تتواصل بالاسم عبر DNS الداخلي.</li>
+              <li>تربط منفذ الحاوية بالمضيف عبر <code>-p</code>، وتعرف الفرق عن <code>EXPOSE</code>.</li>
+              <li>تتعرّف على شبكة <code>host</code> ومتى تُستخدم.</li>
+              <li>تدير الشبكات: الإنشاء والربط والفحص.</li>
+            </ul>
+
+            <!-- ============ 3. Prerequisites ============ -->
+            <h2>المتطلبات المسبقة</h2>
+            <ul>
+              <li>إنهاء الفصل 4 (تشغيل الحاويات) والفصل 6 (Volumes).</li>
+              <li>ربط المنافذ بـ <code>-p</code> (مرّ بنا في الفصل 2).</li>
+            </ul>
+
+            <!-- ============ 4. Theory ============ -->
+            <h2>أنواع الشبكات (Network Drivers)</h2>
+            <p>يوفّر Docker عدة «محرّكات» شبكة، أهمّها ثلاثة:</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>النوع</th><th>الوصف</th></tr></thead>
+                <tbody>
+                  <tr><td><code>bridge</code></td><td>الافتراضي؛ شبكة خاصة معزولة على المضيف (الأكثر استخدامًا)</td></tr>
+                  <tr><td><code>host</code></td><td>تشارك network stack الخاص بالمضيف مباشرةً دون عزل (Linux)</td></tr>
+                  <tr><td><code>none</code></td><td>بلا شبكة إطلاقًا (عزل كامل)</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2>الشبكة الافتراضية مقابل المعرّفة</h2>
+            <p>
+              كل حاوية تنضمّ افتراضيًّا إلى شبكة bridge افتراضية. لكن لها قيد مهم:
+              الحاويات فيها <strong>لا تتعارف بالاسم</strong>، بل بعناوين IP فقط —
+              وهي متغيّرة وغير عملية.
+            </p>
+            <div class="callout callout--important">
+              <p class="callout__title"><span class="ico">❗</span> القاعدة الذهبية</p>
+              <p>
+                أنشئ دائمًا <strong>شبكة معرّفة (user-defined bridge)</strong> لتطبيقك.
+                عليها فقط يعمل <strong>DNS الداخلي</strong>، فتصل كل حاوية إلى الأخرى
+                باسمها كأنه اسم مضيف (hostname). هذا ما يجعل تطبيقك يصل إلى القاعدة
+                عبر <code>db</code> بدل رقم IP.
+              </p>
+            </div>
+
+            <h2>ربط المنافذ (Port Mapping)</h2>
+            <p>
+              الشبكة تربط الحاويات ببعضها، لكن للوصول من <strong>خارج</strong> Docker
+              (مثل متصفّحك) نحتاج <strong>نشر منفذ</strong> بـ <code>-p</code>:
+            </p>
+            <figure class="code-block" data-lang="bash" data-title="بنية -p">
+              <pre><code class="language-bash"># -p &lt;host-port&gt;:&lt;container-port&gt;
+-p 8080:80    # host 8080  ->  container 80</code></pre>
+            </figure>
+            <p>
+              تذكّر الفرق من فصل Dockerfile: <code>EXPOSE</code> توثيق فقط، بينما
+              <code>-p</code> هو ما ينشر المنفذ فعليًّا للمضيف.
+            </p>
+
+            <h2>شبكة host و none</h2>
+            <p>
+              شبكة <code>host</code> تجعل الحاوية تشارك شبكة المضيف مباشرةً (لا حاجة
+              لـ <code>-p</code>)، لكنها بلا عزل وتعمل بكامل مزاياها على Linux فقط.
+              أما <code>none</code> فتعزل الحاوية تمامًا عن أي شبكة.
+            </p>
+
+            <!-- ============ 5. Real World Analogy ============ -->
+            <h2>تشبيه من الواقع</h2>
+            <div class="callout callout--tip">
+              <p class="callout__title"><span class="ico">✅</span> مقسّم هاتف داخلي</p>
+              <p>
+                الشبكة المعرّفة كـ<strong>مقسّم هاتف داخلي</strong> في شركة: كل
+                موظّف (حاوية) له اسم، وينادي زملاءه بأسمائهم عبر دليل داخلي (DNS).
+                أما ربط المنفذ (<code>-p</code>) فكـ<strong>موظّف الاستقبال</strong>
+                الذي يحوّل مكالمة من الخارج إلى رقم داخلي محدّد.
+              </p>
+            </div>
+
+            <!-- ============ 6. Diagram ============ -->
+            <h2>مخطّطات توضيحية</h2>
+
+            <h3>التواصل بالاسم على شبكة معرّفة</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    subgraph NET["user-defined network: tasks-net"]
+        APP["app"] -->|"db:5432"| DB["db"]
+    end
+    BROWSER["المتصفّح"] -->|"localhost:8080"| APP
+              </pre>
+              <figcaption>
+                داخل الشبكة يصل <code>app</code> إلى <code>db</code> بالاسم؛ ومن
+                الخارج نصل إلى <code>app</code> عبر منفذ منشور.
+              </figcaption>
+            </figure>
+
+            <h3>ربط المنفذ بين المضيف والحاوية</h3>
+            <figure class="diagram">
+              <pre class="mermaid">
+flowchart LR
+    H["host : 8080"] -->|"-p 8080:80"| C["container : 80"]
+              </pre>
+              <figcaption>الطلب على منفذ المضيف يُوجَّه إلى منفذ الحاوية.</figcaption>
+            </figure>
+
+            <!-- ============ 7. Example ============ -->
+            <h2>مثال: حاويتان تتحدّثان بالاسم</h2>
+            <p>ننشئ شبكة معرّفة، ونشغّل عليها حاويتين، ونصل بينهما بالاسم:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker network create appnet</code></pre>
+            </figure>
+            <p>خادم <code>web</code> على الشبكة:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name web --network appnet nginx</code></pre>
+            </figure>
+            <p>حاوية أخرى على نفس الشبكة تصل إلى <code>web</code> بالاسم:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run --rm --network appnet curlimages/curl curl -s http://web</code></pre>
+            </figure>
+            <p>
+              نجح الاتصال باستخدام الاسم <code>web</code> كـ hostname — لأن DNS
+              الداخلي يعمل على الشبكة المعرّفة.
+            </p>
+            <div class="callout callout--note">
+              <p class="callout__title"><span class="ico">💡</span> جرّب الفرق</p>
+              <p>
+                لو شغّلت الحاويتين دون <code>--network appnet</code> (على الشبكة
+                الافتراضية)، لفشل الوصول بالاسم <code>web</code> — وهذا سبب إصرارنا
+                على الشبكة المعرّفة.
+              </p>
+            </div>
+
+            <!-- ============ 8. Hands-on Demo ============ -->
+            <h2>عرض عملي: النشر وإدارة الشبكات</h2>
+            <p>نشر منفذ للوصول من المتصفّح:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker run -d --name web -p 8080:80 --network appnet nginx</code></pre>
+            </figure>
+            <p>افتح <code>http://localhost:8080</code>. أوامر إدارة الشبكات:</p>
+            <figure class="code-block" data-lang="bash" data-title="Terminal">
+              <pre><code class="language-bash">docker network ls                  # list networks
+docker network inspect appnet      # details + connected containers
+docker network connect appnet db   # attach a running container
+docker network rm appnet           # remove a network</code></pre>
+            </figure>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> لا تستخدم <code>localhost</code> بين الحاويات</p>
+              <p>
+                داخل حاوية، <code>localhost</code> يعني الحاوية نفسها لا المضيف ولا
+                حاوية أخرى. للوصول إلى حاوية أخرى استخدم اسمها على الشبكة المشتركة.
+              </p>
+            </div>
+
+            <!-- ============ 9. Lab ============ -->
+            <h2>المعمل التطبيقي</h2>
+            <div class="callout callout--exercise">
+              <p class="callout__title"><span class="ico">🧪</span> معمل 7: ربط التطبيق بالقاعدة عبر الشبكة</p>
+              <p>
+                الآن نجمع كل شيء: التطبيق (الفصل 5) والقاعدة الدائمة (الفصل 6)
+                يتواصلان على شبكة معرّفة، والتطبيق يصل إلى القاعدة بالاسم <code>db</code>.
+              </p>
+              <ol>
+                <li>أنشئ الشبكة: <code>docker network create tasks-net</code>.</li>
+                <li>
+                  شغّل القاعدة على الشبكة مع الـ Volume الدائم:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker run -d --name db --network tasks-net -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=tasks -v tasks-db:/var/lib/postgresql/data postgres:16</code></pre>
+                  </figure>
+                </li>
+                <li>
+                  شغّل التطبيق على نفس الشبكة، مع توجيهه إلى القاعدة بالاسم <code>db</code>:
+                  <figure class="code-block" data-lang="bash" data-title="Terminal">
+                    <pre><code class="language-bash">docker run -d --name app --network tasks-net -p 8080:8080 -e DB_HOST=db -e DB_PORT=5432 -e DB_NAME=tasks -e DB_USER=postgres -e DB_PASSWORD=secret my-app:1.0</code></pre>
+                  </figure>
+                </li>
+                <li>تابع سجلّات التطبيق وتأكّد أنه اتصل بالقاعدة: <code>docker logs -f app</code>.</li>
+                <li>افتح <code>http://localhost:8080</code> وجرّب التطبيق.</li>
+              </ol>
+              <p>
+                <strong>المخرجات:</strong> تطبيق يتحدّث إلى قاعدته بالاسم عبر شبكة
+                معرّفة. لاحظ كم أصبح أمر التشغيل طويلًا — في الفصل التالي يختصر
+                Docker Compose كل هذا في ملف واحد.
+              </p>
+            </div>
+
+            <!-- ============ 10. Common Mistakes ============ -->
+            <h2>أخطاء شائعة</h2>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> توقّع التعارف بالاسم على الشبكة الافتراضية</p>
+              <p>DNS الداخلي يعمل على الشبكة المعرّفة فقط. أنشئ شبكة بـ <code>docker network create</code> واربط بها الحاويات.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> عكس ترتيب <code>-p</code></p>
+              <p>الصيغة <code>host:container</code>. كتابة <code>-p 80:8080</code> بدل <code>-p 8080:80</code> توجّه الطلب لمنفذ خاطئ.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> نسيان وضع الحاويات على نفس الشبكة</p>
+              <p>حاويتان على شبكتين مختلفتين لا تريان بعضهما. يجب أن تتشاركا نفس الشبكة للتواصل.</p>
+            </div>
+            <div class="callout callout--warning">
+              <p class="callout__title"><span class="ico">⚠️</span> نشر منفذ القاعدة دون داعٍ</p>
+              <p>إن كان التطبيق وحده يحتاج القاعدة، فلا داعي لنشر <code>5432</code> للمضيف؛ يكفي أن تكون القاعدة على نفس الشبكة.</p>
+            </div>
+
+            <!-- ============ 11. Best Practices ============ -->
+            <h2>أفضل الممارسات</h2>
+            <div class="card-grid">
+              <div class="card">
+                <h4>🔗 شبكة معرّفة لكل تطبيق</h4>
+                <p>اجمع حاويات التطبيق الواحد على شبكة خاصة به لعزلها وتفعيل DNS.</p>
+              </div>
+              <div class="card">
+                <h4>🏷️ اتصل بالاسم لا بالـ IP</h4>
+                <p>عناوين IP متغيّرة؛ أسماء الحاويات ثابتة وواضحة.</p>
+              </div>
+              <div class="card">
+                <h4>🔒 انشر أقل المنافذ</h4>
+                <p>انشر فقط ما يحتاجه العالم الخارجي، وأبقِ الباقي داخليًّا.</p>
+              </div>
+            </div>
+
+            <!-- ============ 13. Cheat Sheet ============ -->
+            <h2>ورقة الأوامر (Cheat Sheet)</h2>
+            <div class="cheatsheet">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>الأمر</th><th>الوظيفة</th></tr></thead>
+                  <tbody>
+                    <tr><td>docker network create &lt;name&gt;</td><td>إنشاء شبكة معرّفة</td></tr>
+                    <tr><td>docker network ls</td><td>عرض الشبكات</td></tr>
+                    <tr><td>docker network inspect &lt;name&gt;</td><td>تفاصيل الشبكة وحاوياتها</td></tr>
+                    <tr><td>docker run --network &lt;name&gt; ...</td><td>تشغيل حاوية على شبكة</td></tr>
+                    <tr><td>docker network connect &lt;net&gt; &lt;container&gt;</td><td>ربط حاوية عاملة بشبكة</td></tr>
+                    <tr><td>docker run -p 8080:80 ...</td><td>نشر منفذ للمضيف</td></tr>
+                    <tr><td>docker network rm &lt;name&gt;</td><td>حذف شبكة</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- ============ 14. Summary ============ -->
+            <div class="summary-box">
+              <h2>الخلاصة</h2>
+              <h3>أهم الأفكار</h3>
+              <ul>
+                <li>أنشئ شبكة معرّفة (user-defined bridge) لأي تطبيق متعدّد الحاويات.</li>
+                <li>على الشبكة المعرّفة تتعارف الحاويات بالاسم عبر DNS الداخلي.</li>
+                <li><code>-p host:container</code> ينشر المنفذ للخارج؛ و<code>EXPOSE</code> توثيق فقط.</li>
+                <li><code>localhost</code> داخل الحاوية يعني الحاوية نفسها، لا حاوية أخرى.</li>
+              </ul>
+              <h3>أوامر مهمة</h3>
+              <ul>
+                <li><code>docker network create / ls / inspect / connect</code></li>
+                <li><code>--network &lt;name&gt;</code> و <code>-p host:container</code></li>
+              </ul>
+              <h3>أخطاء تجنّبها</h3>
+              <ul>
+                <li>الاعتماد على الشبكة الافتراضية للتعارف بالاسم.</li>
+                <li>استخدام <code>localhost</code> بين الحاويات.</li>
+              </ul>
+            </div>
+
+            <!-- ============ 15. Next Chapter (auto by layout.js) ============ -->
+          </article>
+
+          <nav id="chapterNav"></nav>
+        </div>
+      </main>
+
+      <aside id="toc" class="toc"></aside>
+    </div>
+
+    <footer id="siteFooter"></footer>
+
+    <!-- Third-party libs (CDN, optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+
+    <!-- Site scripts -->
+    <script src="../site-data.js"></script>
+    <script src="../assets/js/layout.js" defer></script>
+    <script src="../assets/js/theme.js" defer></script>
+    <script src="../assets/js/toc.js" defer></script>
+    <script src="../assets/js/code.js" defer></script>
+    <script src="../assets/js/main.js" defer></script>
+  </body>
+</html>
