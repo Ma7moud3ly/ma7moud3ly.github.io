@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TipFrame - Turn your code into a beautiful image</title>
+
+    <!-- search engines -->
+    <meta name="description"
+          content="TipFrame turns a code snippet into a clean, shareable image: pick a theme, a window frame and a background, highlight lines, then export a PNG or share a link.">
+    <meta name="keywords"
+          content="code screenshot, code to image, code snippet image, share code, syntax highlighting, code tips, Kotlin, Compose Multiplatform">
+    <meta name="author" content="Mahmoud Aly">
+    <meta name="application-name" content="TipFrame">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://ma7moud3ly.github.io/tip-frame/">
+    <meta name="theme-color" content="#FFFFFF">
+    <meta name="color-scheme" content="dark light">
+
+    <!-- link previews -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="TipFrame">
+    <meta property="og:title" content="TipFrame - Turn your code into a beautiful image">
+    <meta property="og:description"
+          content="Pick a theme, a window frame and a background, highlight lines, add your name, then export a PNG or share a link.">
+    <meta property="og:url" content="https://ma7moud3ly.github.io/tip-frame/">
+    <meta property="og:image" content="https://ma7moud3ly.github.io/tip-frame/icon-512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="The TipFrame logo: a code window on an orange and blue tile">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="TipFrame - Turn your code into a beautiful image">
+    <meta name="twitter:description"
+          content="Pick a theme, a window frame and a background, highlight lines, add your name, then export a PNG or share a link.">
+    <meta name="twitter:image" content="https://ma7moud3ly.github.io/tip-frame/icon-512.png">
+
+    <!-- what the site is, for search engines that read structured data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "TipFrame",
+        "url": "https://ma7moud3ly.github.io/tip-frame/",
+        "description": "TipFrame turns a code snippet into a clean, shareable image: themes, window frames, backgrounds, highlighted lines and an author badge, exported as a PNG or shared as a link.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires a browser with WebAssembly garbage collection support",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "image": "https://ma7moud3ly.github.io/tip-frame/icon-512.png",
+        "sameAs": "https://github.com/Ma7moud3ly/tip-frame",
+        "author": {
+            "@type": "Person",
+            "name": "Mahmoud Aly",
+            "url": "https://github.com/Ma7moud3ly"
+        }
+    }
+    </script>
+
+    <!-- icons -->
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="icon-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+
+    <link type="text/css" rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <svg id="loader" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 50 50" role="presentation">
+        <circle cx="25" cy="25" r="20" stroke="#F0F0F0" stroke-width="4" fill="none"/>
+        <circle cx="25" cy="25" r="20" stroke="#0B216F" stroke-width="4" fill="none" stroke-linecap="round"
+                stroke-dasharray="90 125">
+            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s"
+                              repeatCount="indefinite"/>
+        </circle>
+    </svg>
+    <!-- shown when scripts are off; also the only text a crawler without scripts can read -->
+    <noscript>
+        <h1>TipFrame</h1>
+        <p>TipFrame turns a code snippet into a clean, shareable image. Pick a theme, a window frame and a
+            background, highlight lines, add your name, then export a PNG or share a link.</p>
+        <p>TipFrame needs JavaScript and WebAssembly to run. The source code is on
+            <a href="https://github.com/Ma7moud3ly/tip-frame">GitHub</a>.</p>
+    </noscript>
+    <script src="import-map-loader.js"></script>
+    <script src="webApp.mjs" type="module"></script>
+</body>
+</html>
