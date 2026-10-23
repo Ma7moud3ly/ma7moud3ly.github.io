@@ -29,6 +29,7 @@
     <link type="text/css" rel="stylesheet" href="styles.css">
 </head>
 <body>
+<<<<<<< HEAD
     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 50 50" role="presentation">
         <circle cx="25" cy="25" r="20" stroke="#3A3F47" stroke-width="4" fill="none"/>
         <circle cx="25" cy="25" r="20" stroke="#8AB4F8" stroke-width="4" fill="none" stroke-linecap="round"
@@ -37,6 +38,19 @@
                               repeatCount="indefinite"/>
         </circle>
     </svg>
+=======
+    <div class="loader">
+        <img src="icon-192.png" width="72" height="72" alt="">
+        <div>&gt;&gt;&gt; Micro REPL</div>
+        <div class="bar"></div>
+    </div>
+    <script>
+        // the dev server on localhost always serves fresh files
+        if ("serviceWorker" in navigator && location.hostname !== "localhost") {
+            navigator.serviceWorker.register("sw.js");
+        }
+    </script>
+>>>>>>> f4a5367485660bdbfba6f4198999df8526d6a6b8
     <script type="application/javascript" src="webApp.js"></script>
 </body>
 </html>
