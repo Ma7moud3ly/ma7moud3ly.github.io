@@ -12,8 +12,6 @@ body {
     text-align: center;
     align-content: center;
 }
-<<<<<<< HEAD
-=======
 
 @font-face {
     font-family: "Consolas";
@@ -45,4 +43,3 @@ body {
     from { background-position: 100% 0; }
     to { background-position: 0 0; }
 }
->>>>>>> f4a5367485660bdbfba6f4198999df8526d6a6b8
